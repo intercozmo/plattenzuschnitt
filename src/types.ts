@@ -1,0 +1,50 @@
+// src/types.ts
+
+export type Grain = 'any' | 'horizontal' | 'vertical';
+
+export interface StockPlate {
+  id: string;
+  label: string;
+  width: number;   // mm
+  height: number;  // mm
+  quantity: number;
+}
+
+export interface CutPiece {
+  id: string;
+  name: string;
+  width: number;   // mm
+  height: number;  // mm
+  quantity: number;
+  grain: Grain;
+}
+
+export interface Placement {
+  piece: CutPiece;
+  x: number;       // mm, top-left origin
+  y: number;
+  rotated: boolean; // true = width↔height swapped
+}
+
+export interface PlacedPlate {
+  stock: StockPlate;
+  plateIndex: number; // 0-based physical instance index
+  placements: Placement[];
+  // wasteArea = (stock.width × stock.height) − Σ(piece areas) − Σ(kerf strip areas)
+  wasteArea: number;
+  wastePct: number;   // wasteArea / (stock.width × stock.height) × 100
+}
+
+export interface CutStep {
+  direction: 'horizontal' | 'vertical';
+  position: number;    // mm from plate origin
+  context: string;     // human-readable context, e.g. "im oberen Teil"
+  subSteps?: CutStep[];
+}
+
+export interface CutPlan {
+  plates: PlacedPlate[];
+  totalWastePct: number; // weighted: Σ(wasteArea) / Σ(plate area) × 100
+  unusedStockPlates: Array<{ stock: StockPlate; quantity: number }>;
+  unplacedPieces: CutPiece[]; // pieces that didn't fit any plate
+}
