@@ -1,6 +1,6 @@
 // src/algorithm/guillotine.ts
 import { DEFAULT_KERF_MM } from '../constants'
-import type { StockPlate, CutPiece, Placement, PlacedPlate, CutPlan } from '../types'
+import type { StockPlate, CutPiece, Placement, PlacedPlate, CutPlan, CutStep } from '../types'
 
 interface FreeRect {
   x: number
@@ -216,4 +216,46 @@ export function computeCutPlan(
   }))
 
   return { plates, totalWastePct, unusedStockPlates, unplacedPieces }
+}
+
+export function generateCutSequence(plate: PlacedPlate, kerf = DEFAULT_KERF_MM): CutStep[] {
+  if (plate.placements.length <= 1) return []
+
+  const steps: CutStep[] = []
+  let stepNum = 1
+
+  const yPositions = new Set<number>()
+  const xPositions = new Set<number>()
+
+  for (const p of plate.placements) {
+    const ph = p.rotated ? p.piece.width : p.piece.height
+    const pw = p.rotated ? p.piece.height : p.piece.width
+    yPositions.add(p.y + ph)
+    xPositions.add(p.x + pw)
+  }
+
+  yPositions.delete(plate.stock.height)
+  xPositions.delete(plate.stock.width)
+
+  const sortedY = Array.from(yPositions).sort((a, b) => a - b)
+  for (const y of sortedY) {
+    steps.push({
+      direction: 'horizontal',
+      position: y,
+      context: `Schnitt ${stepNum}: Horizontal bei Y=${y} mm`,
+    })
+    stepNum++
+  }
+
+  const sortedX = Array.from(xPositions).sort((a, b) => a - b)
+  for (const x of sortedX) {
+    steps.push({
+      direction: 'vertical',
+      position: x,
+      context: `Schnitt ${stepNum}: Vertikal bei X=${x} mm`,
+    })
+    stepNum++
+  }
+
+  return steps
 }

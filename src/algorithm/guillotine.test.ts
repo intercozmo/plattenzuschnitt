@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeCutPlan } from './guillotine'
+import { computeCutPlan, generateCutSequence } from './guillotine'
 import type { StockPlate, CutPiece } from '../types'
 
 const plate2440: StockPlate = { id: 'p1', label: 'Test', width: 2440, height: 1220, quantity: 2 }
@@ -68,5 +68,26 @@ describe('computeCutPlan', () => {
     const stock = [{ ...plate2440, quantity: 10 }]
     const plan = computeCutPlan(stock, pieces)
     expect(plan.totalWastePct).toBeLessThanOrEqual(30)
+  })
+})
+
+describe('generateCutSequence', () => {
+  it('returns at least one cut step for a plate with 2 placements', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 2, grain: 'any' }
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces)
+    expect(plan.plates.length).toBeGreaterThan(0)
+    const steps = generateCutSequence(plan.plates[0])
+    expect(steps.length).toBeGreaterThan(0)
+  })
+
+  it('returns empty array for a plate with only one piece', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 1, grain: 'any' }
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces)
+    const steps = generateCutSequence(plan.plates[0])
+    expect(steps).toHaveLength(0)
   })
 })
