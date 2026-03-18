@@ -120,15 +120,16 @@ export function computeCutPlan(
 
   const openPlates: OpenPlate[] = []
   const plateIndexCounters = new Map<string, number>()
-  const unplacedPieces: CutPiece[] = []
-  const unplacedIds = new Set<string>()
+  const unplacedCounts = new Map<string, { piece: CutPiece; count: number }>()
 
   for (const piece of expanded) {
     // Check if piece can fit on any stock at all
     if (!stockPlates.some(s => fitsOnStock(piece, s))) {
-      if (!unplacedIds.has(piece.id)) {
-        unplacedPieces.push(piece)
-        unplacedIds.add(piece.id)
+      const existing = unplacedCounts.get(piece.id)
+      if (existing) {
+        existing.count++
+      } else {
+        unplacedCounts.set(piece.id, { piece, count: 1 })
       }
       continue
     }
@@ -141,30 +142,22 @@ export function computeCutPlan(
     }
 
     // Open a new plate — pick smallest available stock that fits
-    // First try plates with remaining quantity; fall back to any fitting stock (unlimited)
     let bestStock: { stock: StockPlate; av: { stock: StockPlate; remaining: number } } | null = null
     for (const av of available.values()) {
+      if (av.remaining <= 0) continue
       if (!fitsOnStock(piece, av.stock)) continue
       const area = av.stock.width * av.stock.height
-      // Prefer plates with remaining quantity; among those prefer smallest area
-      if (!bestStock) {
+      if (!bestStock || area < bestStock.stock.width * bestStock.stock.height) {
         bestStock = { stock: av.stock, av }
-      } else {
-        const bestArea = bestStock.stock.width * bestStock.stock.height
-        const bestHasRemaining = bestStock.av.remaining > 0
-        const thisHasRemaining = av.remaining > 0
-        if (thisHasRemaining && !bestHasRemaining) {
-          bestStock = { stock: av.stock, av }
-        } else if (thisHasRemaining === bestHasRemaining && area < bestArea) {
-          bestStock = { stock: av.stock, av }
-        }
       }
     }
 
     if (!bestStock) {
-      if (!unplacedIds.has(piece.id)) {
-        unplacedPieces.push(piece)
-        unplacedIds.add(piece.id)
+      const existing = unplacedCounts.get(piece.id)
+      if (existing) {
+        existing.count++
+      } else {
+        unplacedCounts.set(piece.id, { piece, count: 1 })
       }
       continue
     }
@@ -216,6 +209,11 @@ export function computeCutPlan(
   const unusedStockPlates = Array.from(available.values())
     .filter(({ remaining }) => remaining > 0)
     .map(({ stock, remaining }) => ({ stock, quantity: remaining }))
+
+  const unplacedPieces: CutPiece[] = Array.from(unplacedCounts.values()).map(({ piece, count }) => ({
+    ...piece,
+    quantity: count,
+  }))
 
   return { plates, totalWastePct, unusedStockPlates, unplacedPieces }
 }

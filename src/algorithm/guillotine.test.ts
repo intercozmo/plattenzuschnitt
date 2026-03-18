@@ -20,7 +20,7 @@ describe('computeCutPlan', () => {
     const pieces: CutPiece[] = [
       { id: 'c1', name: 'Big', width: 1000, height: 600, quantity: 10, grain: 'any' }
     ]
-    const plan = computeCutPlan([plate2440], pieces)
+    const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces)
     expect(plan.plates.length).toBeGreaterThan(1)
     const totalPlaced = plan.plates.reduce((s, p) => s + p.placements.length, 0)
     expect(totalPlaced).toBe(10)
