@@ -1,6 +1,7 @@
 // src/store.ts
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import { shallow } from 'zustand/shallow'
 import { nanoid } from 'nanoid'
 import type { StockPlate, CutPiece, Grain } from './types'
 import { loadState, saveState } from './persistence'
@@ -47,8 +48,9 @@ export const useStore = create<AppState>()(
   }))
 )
 
-// Auto-persist on every state change
+// Auto-persist on every state change (shallow equality prevents unnecessary saves)
 useStore.subscribe(
   state => ({ stockPlates: state.stockPlates, cutPieces: state.cutPieces }),
-  ({ stockPlates, cutPieces }) => saveState({ stockPlates, cutPieces })
+  ({ stockPlates, cutPieces }) => saveState({ stockPlates, cutPieces }),
+  { equalityFn: shallow }
 )
