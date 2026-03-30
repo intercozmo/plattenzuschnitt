@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function PiecesScreen({ onBack, onPlanReady }: Props) {
-  const { cutPieces, stockPlates, addCutPiece, updateCutPiece, removeCutPiece } = useStore()
+  const { cutPieces, stockPlates, kerf, priority, addCutPiece, updateCutPiece, removeCutPiece } = useStore()
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<CutPiece | null>(null)
 
@@ -31,7 +31,7 @@ export default function PiecesScreen({ onBack, onPlanReady }: Props) {
   }
 
   function handleCompute() {
-    const plan = computeCutPlan(stockPlates, cutPieces)
+    const plan = computeCutPlan(stockPlates, cutPieces, kerf, priority)
     onPlanReady(plan)
   }
 

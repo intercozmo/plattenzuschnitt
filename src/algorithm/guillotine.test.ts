@@ -169,8 +169,8 @@ describe('computeCutPlan', () => {
     const nodesWaste = countAllNodes(planWaste.plates)
     const nodesCuts  = countAllNodes(planCuts.plates)
 
-    // least-cuts should produce no more cut nodes than least-waste
-    expect(nodesCuts).toBeLessThanOrEqual(nodesWaste + 2) // allow small variance
+    // least-cuts should produce strictly fewer or equal cut nodes than least-waste
+    expect(nodesCuts).toBeLessThanOrEqual(nodesWaste)
   })
 
   // -------------------------------------------------------------------------

@@ -43,6 +43,8 @@ interface PanelResult {
   placedArea: number
 }
 
+const MAX_DEPTH = 100
+
 // ---------------------------------------------------------------------------
 // Greedy guillotine placement (single-pass, no backtracking)
 //
@@ -65,14 +67,19 @@ function placeOnPanel(
   pieces: CutPiece[],
   kerf: number,
   priority: OptimizationPriority,
+  depth = 0,
 ): PanelResult {
+  if (depth >= MAX_DEPTH) {
+    return { placements: [], cutNode: null, placedArea: panelWidth * panelHeight }
+  }
+
   if (panelWidth <= 0 || panelHeight <= 0 || pieces.length === 0) {
     return { placements: [], cutNode: null, placedArea: 0 }
   }
 
   // Sort pieces: for 'least-cuts', prefer tall pieces (shelf rows); otherwise area-descending
   const sorted = priority === 'least-cuts'
-    ? [...pieces].sort((a, b) => Math.max(b.width, b.height) - Math.max(a.width, a.height))
+    ? [...pieces].sort((a, b) => b.height - a.height)
     : [...pieces].sort((a, b) => b.width * b.height - a.width * a.height)
 
   const panelArea = panelWidth * panelHeight
@@ -118,14 +125,14 @@ function placeOnPanel(
         const bottomH = panelHeight - ph - kerf
 
         const rightResult = rightW > 0 && rightH > 0
-          ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, remaining, kerf, priority)
+          ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, remaining, kerf, priority, depth + 1)
           : { placements: [], cutNode: null, placedArea: 0 }
 
         const placedInRight = new Set(rightResult.placements.map(p => p.piece))
         const forBottom = remaining.filter(p => !placedInRight.has(p))
 
         const bottomResult = bottomW > 0 && bottomH > 0
-          ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, forBottom, kerf, priority)
+          ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, forBottom, kerf, priority, depth + 1)
           : { placements: [], cutNode: null, placedArea: 0 }
 
         const allPlacements = [placement, ...rightResult.placements, ...bottomResult.placements]
@@ -162,14 +169,14 @@ function placeOnPanel(
         const rightH = panelHeight
 
         const bottomResult = bottomW > 0 && bottomH > 0
-          ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, remaining, kerf, priority)
+          ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, remaining, kerf, priority, depth + 1)
           : { placements: [], cutNode: null, placedArea: 0 }
 
         const placedInBottom = new Set(bottomResult.placements.map(p => p.piece))
         const forRight = remaining.filter(p => !placedInBottom.has(p))
 
         const rightResult = rightW > 0 && rightH > 0
-          ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, forRight, kerf, priority)
+          ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, forRight, kerf, priority, depth + 1)
           : { placements: [], cutNode: null, placedArea: 0 }
 
         const allPlacements = [placement, ...bottomResult.placements, ...rightResult.placements]
@@ -211,15 +218,20 @@ function scoreResult(
   priority: OptimizationPriority,
 ): number {
   const areaRatio = panelArea > 0 ? placedArea / panelArea : 0
-
-  if (priority === 'least-waste' || priority === 'least-cuts') {
-    return areaRatio
-  }
-
-  // balanced: 0.6 × area ratio + 0.4 × (1 - cuts / max_cuts)
   const cutCount = countNodes(cutNode)
   const MAX_CUTS = 50 // normalization constant
   const cutRatio = 1 - Math.min(cutCount / MAX_CUTS, 1)
+
+  if (priority === 'least-waste') {
+    return areaRatio
+  }
+
+  if (priority === 'least-cuts') {
+    // Strongly reward fewer cuts; area utilisation is secondary
+    return 0.2 * areaRatio + 0.8 * cutRatio
+  }
+
+  // balanced: 0.6 × area ratio + 0.4 × (1 - cuts / max_cuts)
   return 0.6 * areaRatio + 0.4 * cutRatio
 }
 
