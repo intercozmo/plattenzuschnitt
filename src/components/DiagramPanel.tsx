@@ -189,8 +189,8 @@ export default function DiagramPanel({ plan, kerf, onBack }: Props) {
                   htmlFor={`plate-${key}`}
                   className="text-sm font-medium text-slate-700 cursor-pointer"
                 >
-                  Platte {idx + 1}: {plate.stock.width}×{plate.stock.height} mm
-                  <span className="text-slate-400 font-normal ml-1">({plate.stock.label})</span>
+                  Platte {idx + 1}/{plan.plates.length}:{' '}
+                  {plate.stock.label ? `${plate.stock.label} ` : ''}{plate.stock.width}×{plate.stock.height} mm
                 </label>
               </div>
 

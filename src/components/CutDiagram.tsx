@@ -13,6 +13,48 @@ interface TooltipState {
   piece: CutPiece
 }
 
+interface WasteRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function computeWasteRects(plate: PlacedPlate): WasteRect[] {
+  const rects: WasteRect[] = []
+  const W = plate.stock.width
+  const H = plate.stock.height
+
+  const bands = new Map<number, { y: number; h: number; pieces: Array<{ x: number; w: number }> }>()
+
+  for (const p of plate.placements) {
+    const pw = p.rotated ? p.piece.height : p.piece.width
+    const ph = p.rotated ? p.piece.width : p.piece.height
+    if (!bands.has(p.y)) bands.set(p.y, { y: p.y, h: ph, pieces: [] })
+    bands.get(p.y)!.pieces.push({ x: p.x, w: pw })
+  }
+
+  let coveredY = 0
+  const sortedBands = Array.from(bands.values()).sort((a, b) => a.y - b.y)
+
+  for (const band of sortedBands) {
+    if (band.y > coveredY) {
+      rects.push({ x: 0, y: coveredY, width: W, height: band.y - coveredY })
+    }
+    const rightmostX = Math.max(...band.pieces.map(p => p.x + p.w))
+    if (rightmostX < W) {
+      rects.push({ x: rightmostX, y: band.y, width: W - rightmostX, height: band.h })
+    }
+    coveredY = band.y + band.h
+  }
+
+  if (coveredY < H) {
+    rects.push({ x: 0, y: coveredY, width: W, height: H - coveredY })
+  }
+
+  return rects
+}
+
 export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
   const [scale, setScale] = useState(1)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
@@ -46,6 +88,8 @@ export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
       lastDist.current = dist
     }
   }
+
+  const wasteRects = computeWasteRects(plate)
 
   // Compute kerf lines (deduplicated)
   const kerfXSet = new Set<number>()
@@ -85,6 +129,31 @@ export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
         >
           {/* Plate background */}
           <rect x={0} y={0} width={svgW} height={svgH} fill="#f1f5f9" stroke="#94a3b8" strokeWidth={10} />
+
+          {/* Waste rectangles */}
+          {wasteRects.map((wr, i) => (
+            <g key={`waste-${i}`}>
+              <rect
+                x={wr.x} y={wr.y}
+                width={wr.width} height={wr.height}
+                fill="#e2e8f0"
+                stroke="#94a3b8"
+                strokeWidth={3}
+                strokeDasharray="20 8"
+                fillOpacity={0.6}
+              />
+              {wr.width > 100 && wr.height > 60 && (
+                <>
+                  <text x={wr.x + wr.width / 2} y={wr.y + wr.height / 2 - 20}
+                    textAnchor="middle" fontSize={40} fill="#94a3b8">Rest</text>
+                  <text x={wr.x + wr.width / 2} y={wr.y + wr.height / 2 + 30}
+                    textAnchor="middle" fontSize={34} fill="#b0b8c4">
+                    {wr.width}×{wr.height}
+                  </text>
+                </>
+              )}
+            </g>
+          ))}
 
           {/* Pieces */}
           {plate.placements.map((p, i) => {

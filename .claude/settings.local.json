@@ -7,7 +7,14 @@
       "Bash(npx vitest:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"fix: clean up dead code and add dimension validation in Phase 4 components:*)",
-      "Bash(git commit -m \"fix: Phase 5 code quality issues in DiagramPanel and CutDiagram:*)"
+      "Bash(git commit -m \"fix: Phase 5 code quality issues in DiagramPanel and CutDiagram:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm:*)",
+      "Bash(xargs ls:*)",
+      "Bash(grep '\"\"version\"\"' package.json)",
+      "Bash(gh pr:*)",
+      "Bash(where gh:*)",
+      "Bash(winget list:*)"
     ]
   }
 }
