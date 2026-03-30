@@ -56,10 +56,10 @@ export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
       const ph = p.rotated ? p.piece.width : p.piece.height
       const rightEdge = p.x + pw
       const bottomEdge = p.y + ph
-      if (rightEdge + kerf <= svgW) {
+      if (rightEdge < svgW) {
         kerfXSet.add(rightEdge)
       }
-      if (bottomEdge + kerf <= svgH) {
+      if (bottomEdge < svgH) {
         kerfYSet.add(bottomEdge)
       }
     }

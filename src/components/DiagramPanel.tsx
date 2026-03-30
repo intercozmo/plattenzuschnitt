@@ -1,5 +1,5 @@
 // src/components/DiagramPanel.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { COLOR_PALETTE } from '../constants'
 import CutDiagram from './CutDiagram'
 import type { CutPlan, PlacedPlate } from '../types'
@@ -21,8 +21,15 @@ async function exportPlateAsJpg(svgElement: SVGElement, filename: string) {
   canvas.height = svgElement.clientHeight * 2
   const ctx = canvas.getContext('2d')!
   const img = new Image()
-  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
-  await new Promise<void>(resolve => { img.onload = () => resolve() })
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('SVG konnte nicht geladen werden'))
+    // Encode SVG for data URI — avoids deprecated unescape() for Unicode safety
+    const encoded = encodeURIComponent(svgData)
+    img.src = 'data:image/svg+xml,' + encoded
+  })
+
   ctx.scale(2, 2)
   ctx.drawImage(img, 0, 0)
   canvas.toBlob(blob => {
@@ -38,14 +45,17 @@ async function exportPlateAsJpg(svgElement: SVGElement, filename: string) {
 
 export default function DiagramPanel({ plan, kerf, onBack }: Props) {
   // Build color map from all placements across all plates
-  const pieceColorMap = new Map<string, string>()
-  plan.plates.forEach(plate => {
-    plate.placements.forEach(p => {
-      if (!pieceColorMap.has(p.piece.id)) {
-        pieceColorMap.set(p.piece.id, COLOR_PALETTE[pieceColorMap.size % COLOR_PALETTE.length])
-      }
+  const pieceColorMap = useMemo(() => {
+    const map = new Map<string, string>()
+    plan.plates.forEach(plate => {
+      plate.placements.forEach(p => {
+        if (!map.has(p.piece.id)) {
+          map.set(p.piece.id, COLOR_PALETTE[map.size % COLOR_PALETTE.length])
+        }
+      })
     })
-  })
+    return map
+  }, [plan])
 
   // Selected plates state (all selected by default)
   const allKeys = plan.plates.map(plateKey)
@@ -79,18 +89,23 @@ export default function DiagramPanel({ plan, kerf, onBack }: Props) {
   }
 
   async function handleJpgExport() {
-    const selectedEntries = plan.plates.filter(p => selectedPlates.has(plateKey(p)))
-    if (selectedEntries.length === 0) {
-      alert('Keine Platten ausgewählt.')
-      return
-    }
-    for (let i = 0; i < selectedEntries.length; i++) {
-      const plate = selectedEntries[i]
-      const key = plateKey(plate)
-      const svgEl = svgRefs.current.get(key)
-      if (!svgEl) continue
-      const filename = `platte-${plate.plateIndex + 1}-${plate.stock.label}.jpg`
-      await exportPlateAsJpg(svgEl, filename)
+    try {
+      const selectedEntries = plan.plates.filter(p => selectedPlates.has(plateKey(p)))
+      if (selectedEntries.length === 0) {
+        alert('Keine Platten ausgewählt.')
+        return
+      }
+      for (let i = 0; i < selectedEntries.length; i++) {
+        const plate = selectedEntries[i]
+        const key = plateKey(plate)
+        const svgEl = svgRefs.current.get(key)
+        if (!svgEl) continue
+        const filename = `platte-${plate.plateIndex + 1}-${plate.stock.label}.jpg`
+        await exportPlateAsJpg(svgEl, filename)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unbekannter Fehler beim JPG-Export'
+      alert(message)
     }
   }
 
