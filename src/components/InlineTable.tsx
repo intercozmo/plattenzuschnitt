@@ -159,7 +159,7 @@ export default function InlineTable({
                         <button
                           type="button"
                           onClick={() => onDelete(row.id)}
-                          className="text-slate-300 hover:text-red-500 text-xs px-1 transition-colors"
+                          className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
                           title="Löschen"
                           aria-label="Löschen"
                         >

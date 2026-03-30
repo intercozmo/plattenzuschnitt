@@ -299,7 +299,7 @@ export default function PiecesTable() {
                           <button
                             type="button"
                             onClick={() => removeCutPiece(piece.id)}
-                            className="text-slate-300 hover:text-red-500 text-xs px-1 transition-colors"
+                            className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
                             title="Löschen"
                             aria-label="Löschen"
                           >
