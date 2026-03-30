@@ -17,7 +17,7 @@ function EmptyDiagramState() {
   return (
     <div className="h-full flex items-center justify-center p-8">
       <p className="text-slate-400 text-center text-sm">
-        Schnittplan berechnen, um das Diagramm anzuzeigen
+        Füge Platten und Stücke hinzu, dann klicke Berechnen
       </p>
     </div>
   )
@@ -44,8 +44,12 @@ export default function App() {
   const canCompute = cutPieces.length > 0 && stockPlates.length > 0 && totalPieces <= MAX_TOTAL_PIECES
 
   function handleCompute() {
-    const { stockPlates, cutPieces, kerf, priority } = useStore.getState()
-    const newPlan = computeCutPlan(stockPlates, cutPieces, kerf, priority)
+    const { stockPlates, cutPieces, kerf, priority, grainEnabled } = useStore.getState()
+    // When grain is disabled, treat all pieces as freely rotatable
+    const pieces = grainEnabled
+      ? cutPieces
+      : cutPieces.map(p => ({ ...p, grain: 'any' as const }))
+    const newPlan = computeCutPlan(stockPlates, pieces, kerf, priority)
     setPlan(newPlan)
     if (!isDesktop) setActiveTab('diagramm')
   }
