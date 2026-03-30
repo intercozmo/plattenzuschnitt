@@ -25,7 +25,10 @@ export function loadState(): PersistedState | null {
       return null
     }
     const result: PersistedState = {
-      stockPlates: parsed.stockPlates,
+      stockPlates: parsed.stockPlates.map((p: StockPlate & { thickness?: number }) => ({
+        ...p,
+        thickness: typeof p.thickness === 'number' ? p.thickness : 18, // default 18mm
+      })),
       cutPieces: parsed.cutPieces,
     }
     if (typeof parsed.kerf === 'number') {

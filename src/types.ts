@@ -7,6 +7,7 @@ export interface StockPlate {
   label: string;
   width: number;   // mm
   height: number;  // mm
+  thickness: number; // mm - material thickness
   quantity: number;
 }
 

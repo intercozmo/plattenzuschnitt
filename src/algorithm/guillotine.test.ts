@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { computeCutPlan, generateCutSequence } from './guillotine'
 import type { StockPlate, CutPiece, CutNode } from '../types'
 
-const plate2440: StockPlate = { id: 'p1', label: 'Test', width: 2440, height: 1220, quantity: 2 }
+const plate2440: StockPlate = { id: 'p1', label: 'Test', width: 2440, height: 1220, thickness: 18, quantity: 2 }
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -15,7 +15,7 @@ interface AppState {
   priority: OptimizationPriority;
 
   // Stock actions
-  addStockPlate: (label: string, width: number, height: number, quantity: number) => void;
+  addStockPlate: (label: string, width: number, height: number, thickness: number, quantity: number) => void;
   updateStockPlate: (id: string, updates: Partial<Omit<StockPlate, 'id'>>) => void;
   removeStockPlate: (id: string) => void;
 
@@ -40,8 +40,8 @@ export const useStore = create<AppState>()(
     grainEnabled: persisted?.grainEnabled ?? false,
     priority: persisted?.priority ?? 'least-waste',
 
-    addStockPlate: (label, width, height, quantity) =>
-      set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, quantity }] })),
+    addStockPlate: (label, width, height, thickness, quantity) =>
+      set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, thickness, quantity }] })),
 
     updateStockPlate: (id, updates) =>
       set(s => ({ stockPlates: s.stockPlates.map(p => p.id === id ? { ...p, ...updates } : p) })),
