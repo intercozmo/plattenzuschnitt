@@ -176,13 +176,13 @@ export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
                       textAnchor="middle" fontSize={40} fill="#334155">
                       {pw}×{ph}
                     </text>
-                    {pw > 80 && (
+                    {labelFits && pw > 80 && (
                       <text x={p.x + pw / 2} y={p.y + 28}
                         textAnchor="middle" fontSize={28} fill="#1e293b">
                         {pw} mm
                       </text>
                     )}
-                    {ph > 80 && (
+                    {labelFits && ph > 80 && (
                       <text
                         x={p.x + 28} y={p.y + ph / 2}
                         textAnchor="middle" fontSize={28} fill="#1e293b"
