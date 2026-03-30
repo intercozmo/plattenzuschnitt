@@ -18,6 +18,15 @@ function sumCutLength(node: CutNode): number {
   return total
 }
 
+// Helper function to count total number of cuts in a CutNode tree
+function countCuts(node: CutNode): number {
+  let count = 1  // Count this node as 1 cut
+  if (node.children) {
+    for (const child of node.children) count += countCuts(child)
+  }
+  return count
+}
+
 export default function GlobalStats({ plan }: Props) {
   const priority = useStore(s => s.priority)
 
@@ -32,6 +41,11 @@ export default function GlobalStats({ plan }: Props) {
     return sum + (plate.cutTree ? sumCutLength(plate.cutTree) : 0)
   }, 0)
   const totalCutLengthM = (totalCutLengthMm / 1000).toFixed(1)
+
+  // Compute total number of cuts
+  const totalCuts = plan.plates.reduce((sum, plate) => {
+    return sum + (plate.cutTree ? countCuts(plate.cutTree) : 0)
+  }, 0)
 
   // Compute used/total plates
   const totalAvailablePlates =
@@ -63,6 +77,11 @@ export default function GlobalStats({ plan }: Props) {
         <dt className="text-slate-500">Gesamtschnittlänge</dt>
         <dd className="text-slate-800 font-medium text-right">
           {totalCutLengthM} m
+        </dd>
+
+        <dt className="text-slate-500">Gesamtschnitte</dt>
+        <dd className="text-slate-800 font-medium text-right">
+          {totalCuts}
         </dd>
 
         <dt className="text-slate-500 bg-amber-50">Verschnitt gesamt</dt>
