@@ -218,7 +218,7 @@ export function computeCutPlan(
   return { plates, totalWastePct, unusedStockPlates, unplacedPieces }
 }
 
-export function generateCutSequence(plate: PlacedPlate, kerf = DEFAULT_KERF_MM): CutStep[] {
+export function generateCutSequence(plate: PlacedPlate, _kerf = DEFAULT_KERF_MM): CutStep[] {
   if (plate.placements.length <= 1) return []
 
   const steps: CutStep[] = []

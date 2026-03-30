@@ -1,10 +1,13 @@
 // src/persistence.ts
 import { SCHEMA_VERSION_KEY } from './constants'
-import type { StockPlate, CutPiece } from './types'
+import type { StockPlate, CutPiece, OptimizationPriority } from './types'
 
-interface PersistedState {
+export interface PersistedState {
   stockPlates: StockPlate[];
   cutPieces: CutPiece[];
+  kerf?: number;
+  grainEnabled?: boolean;
+  priority?: OptimizationPriority;
 }
 
 export function loadState(): PersistedState | null {

@@ -3,12 +3,16 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { shallow } from 'zustand/shallow'
 import { nanoid } from 'nanoid'
-import type { StockPlate, CutPiece, Grain } from './types'
+import type { StockPlate, CutPiece, Grain, OptimizationPriority } from './types'
 import { loadState, saveState } from './persistence'
+import { DEFAULT_KERF_MM } from './constants'
 
 interface AppState {
   stockPlates: StockPlate[];
   cutPieces: CutPiece[];
+  kerf: number;
+  grainEnabled: boolean;
+  priority: OptimizationPriority;
 
   // Stock actions
   addStockPlate: (label: string, width: number, height: number, quantity: number) => void;
@@ -19,6 +23,11 @@ interface AppState {
   addCutPiece: (name: string, width: number, height: number, quantity: number, grain: Grain) => void;
   updateCutPiece: (id: string, updates: Partial<Omit<CutPiece, 'id'>>) => void;
   removeCutPiece: (id: string) => void;
+
+  // Option actions
+  setKerf: (kerf: number) => void;
+  setGrainEnabled: (enabled: boolean) => void;
+  setPriority: (priority: OptimizationPriority) => void;
 }
 
 const persisted = loadState()
@@ -27,6 +36,9 @@ export const useStore = create<AppState>()(
   subscribeWithSelector((set) => ({
     stockPlates: persisted?.stockPlates ?? [],
     cutPieces: persisted?.cutPieces ?? [],
+    kerf: persisted?.kerf ?? DEFAULT_KERF_MM,
+    grainEnabled: persisted?.grainEnabled ?? false,
+    priority: persisted?.priority ?? 'least-waste',
 
     addStockPlate: (label, width, height, quantity) =>
       set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, quantity }] })),
@@ -45,12 +57,25 @@ export const useStore = create<AppState>()(
 
     removeCutPiece: (id) =>
       set(s => ({ cutPieces: s.cutPieces.filter(p => p.id !== id) })),
+
+    setKerf: (kerf) => set({ kerf }),
+
+    setGrainEnabled: (enabled) => set({ grainEnabled: enabled }),
+
+    setPriority: (priority) => set({ priority }),
   }))
 )
 
 // Auto-persist on every state change (shallow equality prevents unnecessary saves)
 useStore.subscribe(
-  state => ({ stockPlates: state.stockPlates, cutPieces: state.cutPieces }),
-  ({ stockPlates, cutPieces }) => saveState({ stockPlates, cutPieces }),
+  state => ({
+    stockPlates: state.stockPlates,
+    cutPieces: state.cutPieces,
+    kerf: state.kerf,
+    grainEnabled: state.grainEnabled,
+    priority: state.priority,
+  }),
+  ({ stockPlates, cutPieces, kerf, grainEnabled, priority }) =>
+    saveState({ stockPlates, cutPieces, kerf, grainEnabled, priority }),
   { equalityFn: shallow }
 )

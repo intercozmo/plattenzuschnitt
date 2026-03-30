@@ -48,3 +48,20 @@ export interface CutPlan {
   unusedStockPlates: Array<{ stock: StockPlate; quantity: number }>;
   unplacedPieces: CutPiece[]; // pieces that didn't fit any plate
 }
+
+export type OptimizationPriority = 'least-waste' | 'least-cuts' | 'balanced';
+
+export interface CutNode {
+  direction: 'horizontal' | 'vertical';
+  position: number;       // mm from top/left of parent panel
+  panelWidth: number;     // width of panel being cut
+  panelHeight: number;    // height of panel being cut
+  piece?: Placement;      // placed piece (if this is a leaf)
+  children?: CutNode[];   // sub-cuts
+}
+
+export interface AppOptions {
+  kerf: number;
+  grainEnabled: boolean;
+  priority: OptimizationPriority;
+}
