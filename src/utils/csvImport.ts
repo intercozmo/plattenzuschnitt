@@ -94,7 +94,9 @@ export function parseCsv(text: string): CsvImportResult {
       continue
     }
 
-    const name = row['name'] ?? ''
+    const dataRowIndex = lineIdx - 1  // 0-based index among data rows
+    const rawName = row['name'] ?? ''
+    const name = rawName.trim() || `Teil ${dataRowIndex + 1}`
     const grain = mapGrain(row['grain'] ?? '')
 
     pieces.push({ name, width, height, quantity: Math.round(quantity), grain })

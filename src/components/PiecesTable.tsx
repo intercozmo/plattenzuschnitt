@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useId } from 'react'
 import { useStore } from '../store'
 import type { Grain, CutPiece } from '../types'
 import { parseCsv } from '../utils/csvImport'
+import type { CsvPiece } from '../utils/csvImport'
 
 type GrainValue = CutPiece['grain']
 
@@ -41,6 +42,7 @@ export default function PiecesTable() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<EditValues>({ width: '', height: '', quantity: '', name: '', grain: 'any' })
   const [importErrors, setImportErrors] = useState<string[]>([])
+  const [pendingImport, setPendingImport] = useState<CsvPiece[] | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const firstInputRef = useRef<HTMLInputElement>(null)
   const fileInputId = useId()
@@ -79,11 +81,12 @@ export default function PiecesTable() {
   }
 
   function commitSave(id: string) {
+    const name = (String(editValues.name ?? '')).trim() || 'Teil'
     updateCutPiece(id, {
       width: Math.max(1, Number(editValues.width) || 0),
       height: Math.max(1, Number(editValues.height) || 0),
       quantity: Math.max(1, Number(editValues.quantity) || 1),
-      name: editValues.name,
+      name,
       grain: editValues.grain,
     })
     setEditingId(null)
@@ -116,14 +119,13 @@ export default function PiecesTable() {
 
   function handleCsvFile(file: File) {
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      const text = ev.target?.result
-      if (typeof text !== 'string') return
+    reader.onload = e => {
+      const text = e.target?.result as string
       const result = parseCsv(text)
-      for (const p of result.pieces) {
-        addCutPiece(p.name, p.width, p.height, p.quantity, p.grain as Grain)
-      }
       setImportErrors(result.errors)
+      if (result.pieces.length > 0) {
+        setPendingImport(result.pieces)
+      }
     }
     reader.readAsText(file, 'utf-8')
   }
@@ -338,6 +340,44 @@ export default function PiecesTable() {
           className="sr-only"
         />
       </div>
+
+      {pendingImport && (
+        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+          <p className="text-blue-800 font-medium mb-2">
+            {pendingImport.length} Stück erkannt. Bestehende Stücke ersetzen oder hinzufügen?
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                cutPieces.forEach(p => removeCutPiece(p.id))
+                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.quantity, p.grain as Grain))
+                setPendingImport(null)
+              }}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"
+            >
+              Ersetzen
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.quantity, p.grain as Grain))
+                setPendingImport(null)
+              }}
+              className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded text-xs font-medium hover:bg-blue-50"
+            >
+              Hinzufügen
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingImport(null)}
+              className="px-3 py-1 text-slate-500 text-xs hover:text-slate-700"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
 
       {importErrors.length > 0 && (
         <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
