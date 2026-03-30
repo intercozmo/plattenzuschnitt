@@ -64,6 +64,7 @@ export default function PiecesTable() {
 
   function startEdit(piece: CutPiece) {
     if (editingId !== null && editingId !== piece.id) {
+      // editValues still holds the prior row's data from this render snapshot — safe to commit
       commitSave(editingId)
     }
     setEditingId(piece.id)

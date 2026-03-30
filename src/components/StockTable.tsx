@@ -1,5 +1,4 @@
 // src/components/StockTable.tsx
-import { useEffect, useRef } from 'react'
 import InlineTable, { type Column, type Row } from './InlineTable'
 import { useStore } from '../store'
 
@@ -16,16 +15,6 @@ export default function StockTable() {
   const updateStockPlate = useStore(s => s.updateStockPlate)
   const removeStockPlate = useStore(s => s.removeStockPlate)
 
-  const prevLengthRef = useRef(stockPlates.length)
-
-  // Track when a new plate is added so InlineTable can enter edit mode.
-  // We use a ref to the InlineTable wrapper div and a key trick instead —
-  // the simplest approach is to pass the rows and let InlineTable handle it.
-  // The new row will be the last item after addStockPlate fires.
-  useEffect(() => {
-    prevLengthRef.current = stockPlates.length
-  })
-
   const rows: Row[] = stockPlates.map(p => ({
     id: p.id,
     width: p.width,
@@ -39,9 +28,11 @@ export default function StockTable() {
   }
 
   function handleSave(id: string, values: Record<string, unknown>) {
+    const width = Math.max(1, Number(values['width']) || 0)
+    const height = Math.max(1, Number(values['height']) || 0)
     updateStockPlate(id, {
-      width: Number(values['width']),
-      height: Number(values['height']),
+      width,
+      height,
       quantity: Number(values['quantity']),
       label: String(values['label'] ?? ''),
     })
