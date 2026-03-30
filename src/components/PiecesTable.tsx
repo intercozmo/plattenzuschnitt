@@ -30,6 +30,7 @@ function nextGrain(grain: GrainValue): GrainValue {
 interface EditValues {
   width: string
   height: string
+  thickness: string
   quantity: string
   name: string
   grain: GrainValue
@@ -42,7 +43,7 @@ export default function PiecesTable() {
   const removeCutPiece = useStore(s => s.removeCutPiece)
 
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<EditValues>({ width: '', height: '', quantity: '', name: '', grain: 'any' })
+  const [editValues, setEditValues] = useState<EditValues>({ width: '', height: '', thickness: '', quantity: '', name: '', grain: 'any' })
   const [importErrors, setImportErrors] = useState<string[]>([])
   const [pendingImport, setPendingImport] = useState<CsvPiece[] | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -97,6 +98,7 @@ export default function PiecesTable() {
     setEditValues({
       width: String(piece.width),
       height: String(piece.height),
+      thickness: String(piece.thickness),
       quantity: String(piece.quantity),
       name: piece.name,
       grain: piece.grain,
@@ -108,17 +110,18 @@ export default function PiecesTable() {
     updateCutPiece(id, {
       width: Math.max(1, Number(editValues.width) || 0),
       height: Math.max(1, Number(editValues.height) || 0),
+      thickness: Math.max(1, Number(editValues.thickness) || 0),
       quantity: Math.max(1, Number(editValues.quantity) || 1),
       name,
       grain: editValues.grain,
     })
     setEditingId(null)
-    setEditValues({ width: '', height: '', quantity: '', name: '', grain: 'any' })
+    setEditValues({ width: '', height: '', thickness: '', quantity: '', name: '', grain: 'any' })
   }
 
   function cancelEdit() {
     setEditingId(null)
-    setEditValues({ width: '', height: '', quantity: '', name: '', grain: 'any' })
+    setEditValues({ width: '', height: '', thickness: '', quantity: '', name: '', grain: 'any' })
   }
 
   function handleKeyDown(e: React.KeyboardEvent, id: string) {
@@ -132,7 +135,7 @@ export default function PiecesTable() {
   }
 
   function handleAdd() {
-    addCutPiece('', 400, 300, 1, 'any')
+    addCutPiece('', 400, 300, 18, 1, 'any')
   }
 
   function toggleGrainInReadMode(piece: CutPiece, e: React.MouseEvent) {
@@ -206,6 +209,7 @@ export default function PiecesTable() {
                     >
                       L {sortKey === 'height' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                     </th>
+                    <th style={{ width: '52px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">D</th>
                     <th
                       style={{ width: '40px' }}
                       className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
@@ -263,6 +267,21 @@ export default function PiecesTable() {
                             />
                           ) : (
                             <span className="text-slate-700">{piece.height}</span>
+                          )}
+                        </td>
+                        {/* thickness */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValues.thickness}
+                              onChange={e => setEditValues(v => ({ ...v, thickness: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.thickness}</span>
                           )}
                         </td>
                         {/* quantity */}
@@ -399,7 +418,7 @@ export default function PiecesTable() {
               type="button"
               onClick={() => {
                 cutPieces.forEach(p => removeCutPiece(p.id))
-                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.quantity, p.grain as Grain))
+                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.thickness, p.quantity, p.grain as Grain))
                 setPendingImport(null)
               }}
               className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700"
@@ -409,7 +428,7 @@ export default function PiecesTable() {
             <button
               type="button"
               onClick={() => {
-                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.quantity, p.grain as Grain))
+                pendingImport.forEach(p => addCutPiece(p.name, p.width, p.height, p.thickness, p.quantity, p.grain as Grain))
                 setPendingImport(null)
               }}
               className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded text-xs font-medium hover:bg-blue-50"

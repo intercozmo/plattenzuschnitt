@@ -4,6 +4,7 @@ export interface CsvPiece {
   name: string
   width: number
   height: number
+  thickness: number
   quantity: number
   grain: 'any' | 'horizontal' | 'vertical'
 }
@@ -27,6 +28,7 @@ function mapColumnName(name: string): string | null {
   if (['anzahl', 'quantity', 'anz', 'qty', 'menge'].includes(n)) return 'quantity'
   if (['name', 'bezeichnung', 'label', 'beschreibung'].includes(n)) return 'name'
   if (['maserung', 'grain', 'faserrichtung'].includes(n)) return 'grain'
+  if (['dicke', 'd', 'thickness', 't'].includes(n)) return 'thickness'
   return null
 }
 
@@ -75,10 +77,12 @@ export function parseCsv(text: string): CsvImportResult {
     // Validate required numeric fields
     const widthRaw = row['width'] ?? ''
     const heightRaw = row['height'] ?? ''
+    const thicknessRaw = row['thickness'] ?? ''
     const quantityRaw = row['quantity'] ?? '1'
 
     const width = Number(widthRaw)
     const height = Number(heightRaw)
+    const thickness = thicknessRaw === '' ? 18 : Number(thicknessRaw)
     const quantity = quantityRaw === '' ? 1 : Number(quantityRaw)
 
     if (widthRaw === '' || isNaN(width) || width <= 0) {
@@ -99,7 +103,7 @@ export function parseCsv(text: string): CsvImportResult {
     const name = rawName.trim() || `Teil ${dataRowIndex + 1}`
     const grain = mapGrain(row['grain'] ?? '')
 
-    pieces.push({ name, width, height, quantity: Math.round(quantity), grain })
+    pieces.push({ name, width, height, thickness, quantity: Math.round(quantity), grain })
   }
 
   return { pieces, errors }

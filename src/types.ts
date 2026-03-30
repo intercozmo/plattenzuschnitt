@@ -16,6 +16,7 @@ export interface CutPiece {
   name: string;
   width: number;   // mm
   height: number;  // mm
+  thickness: number; // mm - material thickness
   quantity: number;
   grain: Grain;
 }

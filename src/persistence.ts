@@ -29,7 +29,10 @@ export function loadState(): PersistedState | null {
         ...p,
         thickness: typeof p.thickness === 'number' ? p.thickness : 18, // default 18mm
       })),
-      cutPieces: parsed.cutPieces,
+      cutPieces: parsed.cutPieces.map((p: CutPiece & { thickness?: number }) => ({
+        ...p,
+        thickness: typeof p.thickness === 'number' ? p.thickness : 18,
+      })),
     }
     if (typeof parsed.kerf === 'number') {
       result.kerf = parsed.kerf
