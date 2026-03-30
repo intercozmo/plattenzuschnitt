@@ -1,11 +1,13 @@
 // src/components/PiecesTable.tsx
-import { useState, useRef, useEffect, useId } from 'react'
+import { useState, useRef, useEffect, useId, useMemo } from 'react'
 import { useStore } from '../store'
 import type { Grain, CutPiece } from '../types'
 import { parseCsv } from '../utils/csvImport'
 import type { CsvPiece } from '../utils/csvImport'
 
 type GrainValue = CutPiece['grain']
+type SortKey = 'width' | 'height' | 'quantity' | 'name'
+type SortDir = 'asc' | 'desc'
 
 function grainLabel(grain: GrainValue): string {
   if (grain === 'horizontal') return '→'
@@ -44,6 +46,8 @@ export default function PiecesTable() {
   const [importErrors, setImportErrors] = useState<string[]>([])
   const [pendingImport, setPendingImport] = useState<CsvPiece[] | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const firstInputRef = useRef<HTMLInputElement>(null)
   const fileInputId = useId()
 
@@ -64,6 +68,25 @@ export default function PiecesTable() {
     }
     prevLengthRef.current = cutPieces.length
   })
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedPieces = useMemo(() => {
+    if (!sortKey) return cutPieces
+    return [...cutPieces].sort((a, b) => {
+      const av = a[sortKey]
+      const bv = b[sortKey]
+      const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [cutPieces, sortKey, sortDir])
 
   function startEdit(piece: CutPiece) {
     if (editingId !== null && editingId !== piece.id) {
@@ -164,154 +187,179 @@ export default function PiecesTable() {
         {cutPieces.length === 0 ? (
           <p className="text-slate-400 text-sm py-2 text-center">Keine Einträge vorhanden.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">B</th>
-                  <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">L</th>
-                  <th style={{ width: '40px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Anz</th>
-                  <th className="text-left text-slate-500 font-medium py-2 pr-3">Name</th>
-                  <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">M</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {cutPieces.map((piece) => {
-                  const isEditing = editingId === piece.id
-                  return (
-                    <tr
-                      key={piece.id}
-                      className={`border-b border-slate-100 last:border-0 ${isEditing ? 'bg-blue-50' : 'hover:bg-slate-50 cursor-pointer'}`}
-                      onClick={() => { if (!isEditing) startEdit(piece) }}
-                      tabIndex={isEditing ? -1 : 0}
-                      onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(piece) } }}
+          <div className="border border-slate-300 rounded overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-300">
+                    <th
+                      style={{ width: '52px' }}
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
+                      onClick={() => handleSort('width')}
                     >
-                      {/* width */}
-                      <td className="py-2 pr-3" onClick={e => isEditing && e.stopPropagation()}>
-                        {isEditing ? (
-                          <input
-                            ref={firstInputRef}
-                            type="number"
-                            min={1}
-                            value={editValues.width}
-                            onChange={e => setEditValues(v => ({ ...v, width: e.target.value }))}
-                            onKeyDown={e => handleKeyDown(e, piece.id)}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          />
-                        ) : (
-                          <span className="text-slate-700">{piece.width}</span>
-                        )}
-                      </td>
-                      {/* height */}
-                      <td className="py-2 pr-3" onClick={e => isEditing && e.stopPropagation()}>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            min={1}
-                            value={editValues.height}
-                            onChange={e => setEditValues(v => ({ ...v, height: e.target.value }))}
-                            onKeyDown={e => handleKeyDown(e, piece.id)}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          />
-                        ) : (
-                          <span className="text-slate-700">{piece.height}</span>
-                        )}
-                      </td>
-                      {/* quantity */}
-                      <td className="py-2 pr-3" onClick={e => isEditing && e.stopPropagation()}>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            min={1}
-                            value={editValues.quantity}
-                            onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
-                            onKeyDown={e => handleKeyDown(e, piece.id)}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          />
-                        ) : (
-                          <span className="text-slate-700">{piece.quantity}</span>
-                        )}
-                      </td>
-                      {/* name */}
-                      <td className="py-2 pr-3" onClick={e => isEditing && e.stopPropagation()}>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editValues.name}
-                            onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
-                            onKeyDown={e => handleKeyDown(e, piece.id)}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          />
-                        ) : (
-                          <span className="text-slate-700">{piece.name}</span>
-                        )}
-                      </td>
-                      {/* grain */}
-                      <td className="py-2 pr-3" onClick={e => e.stopPropagation()}>
-                        {isEditing ? (
-                          <select
-                            value={editValues.grain}
-                            onChange={e => setEditValues(v => ({ ...v, grain: e.target.value as GrainValue }))}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitSave(piece.id) } else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() } }}
-                            className="w-full border border-blue-300 rounded px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          >
-                            <option value="any">Keine</option>
-                            <option value="horizontal">Längs</option>
-                            <option value="vertical">Quer</option>
-                          </select>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={e => toggleGrainInReadMode(piece, e)}
-                            title={grainTitle(piece.grain)}
-                            aria-label={`Maserung: ${grainTitle(piece.grain)}`}
-                            className="text-slate-600 hover:text-blue-600 text-base w-8 h-7 flex items-center justify-center rounded hover:bg-blue-50 transition-colors"
-                          >
-                            {grainLabel(piece.grain)}
-                          </button>
-                        )}
-                      </td>
-                      {/* actions */}
-                      <td className="py-2 text-right" onClick={e => e.stopPropagation()}>
-                        {isEditing ? (
-                          <div className="flex gap-1 justify-end">
-                            <button
-                              type="button"
-                              onClick={() => commitSave(piece.id)}
-                              className="text-green-600 hover:text-green-700 text-xs px-1 font-medium"
-                              title="Speichern"
-                              aria-label="Speichern"
+                      B {sortKey === 'width' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th
+                      style={{ width: '52px' }}
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
+                      onClick={() => handleSort('height')}
+                    >
+                      L {sortKey === 'height' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th
+                      style={{ width: '40px' }}
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
+                      onClick={() => handleSort('quantity')}
+                    >
+                      Anz {sortKey === 'quantity' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
+                      onClick={() => handleSort('name')}
+                    >
+                      Name {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th style={{ width: '52px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">M</th>
+                    <th className="w-8 border border-slate-300 bg-slate-100" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedPieces.map((piece, rowIndex) => {
+                    const isEditing = editingId === piece.id
+                    return (
+                      <tr
+                        key={piece.id}
+                        className={`${isEditing ? 'bg-blue-50' : (rowIndex % 2 === 0 ? 'bg-white hover:bg-blue-50 cursor-pointer' : 'bg-slate-50 hover:bg-blue-50 cursor-pointer')}`}
+                        onClick={() => { if (!isEditing) startEdit(piece) }}
+                        tabIndex={isEditing ? -1 : 0}
+                        onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(piece) } }}
+                      >
+                        {/* width */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              ref={firstInputRef}
+                              type="number"
+                              min={1}
+                              value={editValues.width}
+                              onChange={e => setEditValues(v => ({ ...v, width: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.width}</span>
+                          )}
+                        </td>
+                        {/* height */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValues.height}
+                              onChange={e => setEditValues(v => ({ ...v, height: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.height}</span>
+                          )}
+                        </td>
+                        {/* quantity */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValues.quantity}
+                              onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.quantity}</span>
+                          )}
+                        </td>
+                        {/* name */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editValues.name}
+                              onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.name}</span>
+                          )}
+                        </td>
+                        {/* grain */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => e.stopPropagation()}>
+                          {isEditing ? (
+                            <select
+                              value={editValues.grain}
+                              onChange={e => setEditValues(v => ({ ...v, grain: e.target.value as GrainValue }))}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitSave(piece.id) } else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() } }}
+                              className="w-full border border-blue-300 rounded px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             >
-                              ✓
-                            </button>
+                              <option value="any">Keine</option>
+                              <option value="horizontal">Längs</option>
+                              <option value="vertical">Quer</option>
+                            </select>
+                          ) : (
                             <button
                               type="button"
-                              onClick={cancelEdit}
-                              className="text-slate-400 hover:text-slate-600 text-xs px-1"
-                              title="Abbrechen"
-                              aria-label="Abbrechen"
+                              onClick={e => toggleGrainInReadMode(piece, e)}
+                              title={grainTitle(piece.grain)}
+                              aria-label={`Maserung: ${grainTitle(piece.grain)}`}
+                              className="text-slate-600 hover:text-blue-600 text-base w-8 h-7 flex items-center justify-center rounded hover:bg-blue-50 transition-colors"
+                            >
+                              {grainLabel(piece.grain)}
+                            </button>
+                          )}
+                        </td>
+                        {/* actions */}
+                        <td className="py-1 px-1 text-right border border-slate-200" onClick={e => e.stopPropagation()}>
+                          {isEditing ? (
+                            <div className="flex gap-1 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => commitSave(piece.id)}
+                                className="text-green-600 hover:text-green-700 text-xs px-1 font-medium"
+                                title="Speichern"
+                                aria-label="Speichern"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEdit}
+                                className="text-slate-400 hover:text-slate-600 text-xs px-1"
+                                title="Abbrechen"
+                                aria-label="Abbrechen"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => removeCutPiece(piece.id)}
+                              className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
+                              title="Löschen"
+                              aria-label="Löschen"
                             >
                               ✕
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => removeCutPiece(piece.id)}
-                            className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
-                            title="Löschen"
-                            aria-label="Löschen"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -88,90 +88,92 @@ export default function InlineTable({
       {rows.length === 0 ? (
         <p className="text-slate-400 text-sm py-2 text-center">Keine Einträge vorhanden.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200">
-                {columns.map(col => (
-                  <th
-                    key={col.key}
-                    style={col.width ? { width: col.width } : undefined}
-                    className="text-left text-slate-500 font-medium py-2 pr-3 last:pr-0"
-                  >
-                    {col.label}
-                  </th>
-                ))}
-                {/* actions column */}
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const isEditing = editingId === row.id
-                return (
-                  <tr
-                    key={row.id}
-                    className={`border-b border-slate-100 last:border-0 ${isEditing ? 'bg-blue-50' : 'hover:bg-slate-50 cursor-pointer'}`}
-                    onClick={() => { if (!isEditing) startEdit(row) }}
-                    tabIndex={isEditing ? -1 : 0}
-                    onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(row) } }}
-                  >
-                    {columns.map((col, colIndex) => (
-                      <td key={col.key} className="py-2 pr-3 last:pr-0" onClick={e => isEditing && e.stopPropagation()}>
+        <div className="border border-slate-300 rounded overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-slate-100 border-b-2 border-slate-300">
+                  {columns.map(col => (
+                    <th
+                      key={col.key}
+                      style={col.width ? { width: col.width } : undefined}
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100"
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                  {/* actions column */}
+                  <th className="w-8 border border-slate-300 bg-slate-100" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => {
+                  const isEditing = editingId === row.id
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`${isEditing ? 'bg-blue-50' : (rowIndex % 2 === 0 ? 'bg-white hover:bg-blue-50 cursor-pointer' : 'bg-slate-50 hover:bg-blue-50 cursor-pointer')}`}
+                      onClick={() => { if (!isEditing) startEdit(row) }}
+                      tabIndex={isEditing ? -1 : 0}
+                      onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(row) } }}
+                    >
+                      {columns.map((col, colIndex) => (
+                        <td key={col.key} className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              ref={colIndex === 0 ? firstInputRef : undefined}
+                              type={col.type === 'number' ? 'number' : 'text'}
+                              min={col.type === 'number' ? 0 : undefined}
+                              value={editValues[col.key] ?? ''}
+                              onChange={e => handleFieldChange(col.key, e.target.value)}
+                              onKeyDown={e => handleKeyDown(e, row.id)}
+                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="py-1 px-1 text-right border border-slate-200" onClick={e => e.stopPropagation()}>
                         {isEditing ? (
-                          <input
-                            ref={colIndex === 0 ? firstInputRef : undefined}
-                            type={col.type === 'number' ? 'number' : 'text'}
-                            min={col.type === 'number' ? 0 : undefined}
-                            value={editValues[col.key] ?? ''}
-                            onChange={e => handleFieldChange(col.key, e.target.value)}
-                            onKeyDown={e => handleKeyDown(e, row.id)}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                          />
+                          <div className="flex gap-1 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => commitSave(row.id)}
+                              className="text-green-600 hover:text-green-700 text-xs px-1 font-medium"
+                              title="Speichern"
+                              aria-label="Speichern"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="text-slate-400 hover:text-slate-600 text-xs px-1"
+                              title="Abbrechen"
+                              aria-label="Abbrechen"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
-                        )}
-                      </td>
-                    ))}
-                    <td className="py-2 text-right" onClick={e => e.stopPropagation()}>
-                      {isEditing ? (
-                        <div className="flex gap-1 justify-end">
                           <button
                             type="button"
-                            onClick={() => commitSave(row.id)}
-                            className="text-green-600 hover:text-green-700 text-xs px-1 font-medium"
-                            title="Speichern"
-                            aria-label="Speichern"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="text-slate-400 hover:text-slate-600 text-xs px-1"
-                            title="Abbrechen"
-                            aria-label="Abbrechen"
+                            onClick={() => onDelete(row.id)}
+                            className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
+                            title="Löschen"
+                            aria-label="Löschen"
                           >
                             ✕
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onDelete(row.id)}
-                          className="text-slate-400 hover:text-red-500 text-xs px-1 transition-colors"
-                          title="Löschen"
-                          aria-label="Löschen"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <button
