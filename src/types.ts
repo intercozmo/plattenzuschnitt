@@ -33,6 +33,7 @@ export interface PlacedPlate {
   // wasteArea = (stock.width × stock.height) − Σ(piece areas) − Σ(kerf strip areas)
   wasteArea: number;
   wastePct: number;   // wasteArea / (stock.width × stock.height) × 100
+  cutTree?: CutNode;  // root of the guillotine cut tree for this plate
 }
 
 export interface CutStep {
@@ -47,6 +48,7 @@ export interface CutPlan {
   totalWastePct: number; // weighted: Σ(wasteArea) / Σ(plate area) × 100
   unusedStockPlates: Array<{ stock: StockPlate; quantity: number }>;
   unplacedPieces: CutPiece[]; // pieces that didn't fit any plate
+  cutTrees?: CutNode[]; // one cut tree root per placed plate
 }
 
 export type OptimizationPriority = 'least-waste' | 'least-cuts' | 'balanced';

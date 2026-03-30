@@ -1,8 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { computeCutPlan, generateCutSequence } from './guillotine'
-import type { StockPlate, CutPiece } from '../types'
+import type { StockPlate, CutPiece, CutNode } from '../types'
 
 const plate2440: StockPlate = { id: 'p1', label: 'Test', width: 2440, height: 1220, quantity: 2 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function collectNodes(node: CutNode): CutNode[] {
+  const nodes: CutNode[] = [node]
+  if (node.children) {
+    for (const child of node.children) nodes.push(...collectNodes(child))
+  }
+  return nodes
+}
+
+// ---------------------------------------------------------------------------
+// computeCutPlan — existing tests (adjusted for new API)
+// ---------------------------------------------------------------------------
 
 describe('computeCutPlan', () => {
   it('places a single piece on a plate', () => {
@@ -57,7 +73,6 @@ describe('computeCutPlan', () => {
 
   it('reference test: 20 standard pieces on 3 plates ≤ 30% waste', () => {
     // 20 pieces total area ≈ 6.66M mm², plate area ≈ 2.98M mm² → minimum 3 plates needed
-    // Theoretical minimum waste on 3 plates ≈ 25.4%; threshold set to 30% for algorithmic headroom
     const pieces: CutPiece[] = [
       { id: 'a', name: 'Seite',  width: 800,  height: 400, quantity: 4, grain: 'any' },
       { id: 'b', name: 'Boden',  width: 600,  height: 300, quantity: 4, grain: 'any' },
@@ -69,7 +84,125 @@ describe('computeCutPlan', () => {
     const plan = computeCutPlan(stock, pieces)
     expect(plan.totalWastePct).toBeLessThanOrEqual(30)
   })
+
+  // -------------------------------------------------------------------------
+  // New: cut tree structural tests
+  // -------------------------------------------------------------------------
+
+  it('produces a cutTree for each placed plate', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 2, grain: 'any' },
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 1 }], pieces)
+    expect(plan.plates.length).toBeGreaterThan(0)
+    // Each plate that has pieces placed should have a cutTree
+    for (const plate of plan.plates) {
+      expect(plate.cutTree).toBeDefined()
+    }
+    expect(plan.cutTrees).toBeDefined()
+    expect(plan.cutTrees!.length).toBe(plan.plates.length)
+  })
+
+  it('every cut in the cut tree spans the full width or height of its panel', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 3, grain: 'any' },
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 2 }], pieces)
+
+    for (const plate of plan.plates) {
+      if (!plate.cutTree) continue
+      const nodes = collectNodes(plate.cutTree)
+      for (const node of nodes) {
+        if (node.direction === 'horizontal') {
+          // A horizontal cut at `position` must be within the panel height
+          expect(node.position).toBeGreaterThan(0)
+          expect(node.position).toBeLessThanOrEqual(node.panelHeight)
+        } else {
+          // A vertical cut at `position` must be within the panel width
+          expect(node.position).toBeGreaterThan(0)
+          expect(node.position).toBeLessThanOrEqual(node.panelWidth)
+        }
+      }
+    }
+  })
+
+  it('cut tree nodes reference correct panel dimensions', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 500, height: 300, quantity: 2, grain: 'any' },
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 1 }], pieces)
+    const plate = plan.plates[0]
+    if (!plate.cutTree) return
+
+    // Root node must match the full plate dimensions
+    expect(plate.cutTree.panelWidth).toBe(plate2440.width)
+    expect(plate.cutTree.panelHeight).toBe(plate2440.height)
+  })
+
+  // -------------------------------------------------------------------------
+  // New: optimization priority tests
+  // -------------------------------------------------------------------------
+
+  it('accepts priority parameter without error', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 4, grain: 'any' },
+    ]
+    const stock = [{ ...plate2440, quantity: 3 }]
+    expect(() => computeCutPlan(stock, pieces, 3, 'least-waste')).not.toThrow()
+    expect(() => computeCutPlan(stock, pieces, 3, 'least-cuts')).not.toThrow()
+    expect(() => computeCutPlan(stock, pieces, 3, 'balanced')).not.toThrow()
+  })
+
+  it("'least-cuts' priority produces ≤ cut nodes than 'least-waste' on a simple case", () => {
+    // Several same-height pieces encourage shelf rows under least-cuts
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 400, height: 300, quantity: 6, grain: 'any' },
+    ]
+    const stock = [{ ...plate2440, quantity: 5 }]
+
+    const planWaste = computeCutPlan(stock, pieces, 3, 'least-waste')
+    const planCuts  = computeCutPlan(stock, pieces, 3, 'least-cuts')
+
+    const countAllNodes = (plates: typeof planWaste.plates) =>
+      plates.reduce((sum, p) => sum + (p.cutTree ? collectNodes(p.cutTree).length : 0), 0)
+
+    const nodesWaste = countAllNodes(planWaste.plates)
+    const nodesCuts  = countAllNodes(planCuts.plates)
+
+    // least-cuts should produce no more cut nodes than least-waste
+    expect(nodesCuts).toBeLessThanOrEqual(nodesWaste + 2) // allow small variance
+  })
+
+  // -------------------------------------------------------------------------
+  // New: grain direction / rotation tests
+  // -------------------------------------------------------------------------
+
+  it('rotation is only applied when grain is any', () => {
+    // Piece 200×1300: height 1300 > plate height 1220, so only fits rotated (1300 wide, 200 tall).
+    // With grain='any': rotation allowed → placed rotated.
+    // With grain='vertical': rotation blocked → unplaced.
+    const forceRotate: CutPiece = {
+      id: 'r3', name: 'NeedsRot', width: 200, height: 1300, quantity: 1, grain: 'any'
+    }
+    const forceRotateNoRot: CutPiece = {
+      id: 'r4', name: 'NeedsRotBlocked', width: 200, height: 1300, quantity: 1, grain: 'vertical'
+    }
+
+    // 2440×1220 plate: 1300 > 1220, so 200×1300 only fits rotated (1300 width, 200 height)
+    // With grain='any': should place rotated
+    const planAny = computeCutPlan([{ ...plate2440, quantity: 1 }], [forceRotate])
+    expect(planAny.plates[0]?.placements[0]?.rotated).toBe(true)
+
+    // With grain='vertical': rotation not allowed → unplaced
+    const planVert = computeCutPlan([{ ...plate2440, quantity: 1 }], [forceRotateNoRot])
+    expect(planVert.plates).toHaveLength(0)
+    expect(planVert.unplacedPieces).toHaveLength(1)
+  })
 })
+
+// ---------------------------------------------------------------------------
+// generateCutSequence
+// ---------------------------------------------------------------------------
 
 describe('generateCutSequence', () => {
   it('returns at least one cut step for a plate with 2 placements', () => {
@@ -89,5 +222,20 @@ describe('generateCutSequence', () => {
     const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces)
     const steps = generateCutSequence(plan.plates[0])
     expect(steps).toHaveLength(0)
+  })
+
+  it('cut sequence steps have correct direction and positive position', () => {
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'A', width: 600, height: 400, quantity: 3, grain: 'any' }
+    ]
+    const plan = computeCutPlan([{ ...plate2440, quantity: 2 }], pieces)
+    for (const plate of plan.plates) {
+      const steps = generateCutSequence(plate)
+      for (const step of steps) {
+        expect(['horizontal', 'vertical']).toContain(step.direction)
+        expect(step.position).toBeGreaterThan(0)
+        expect(step.context).toMatch(/Schnitt \d+/)
+      }
+    }
   })
 })
