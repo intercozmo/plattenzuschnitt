@@ -30,7 +30,7 @@ export function useResizeObserver(ref: RefObject<HTMLElement>): Size {
     setSize({ width, height })
 
     return () => observer.disconnect()
-  }, [ref])
+  }, [])
 
   return size
 }

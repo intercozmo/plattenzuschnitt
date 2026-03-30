@@ -24,7 +24,21 @@ export function loadState(): PersistedState | null {
       console.warn('[Plattenzuschnitt] Invalid persisted state, discarding.')
       return null
     }
-    return parsed as PersistedState
+    const result: PersistedState = {
+      stockPlates: parsed.stockPlates,
+      cutPieces: parsed.cutPieces,
+    }
+    if (typeof parsed.kerf === 'number') {
+      result.kerf = parsed.kerf
+    }
+    if (typeof parsed.grainEnabled === 'boolean') {
+      result.grainEnabled = parsed.grainEnabled
+    }
+    const validPriorities: OptimizationPriority[] = ['least-waste', 'least-cuts', 'balanced']
+    if (validPriorities.includes(parsed.priority)) {
+      result.priority = parsed.priority
+    }
+    return result
   } catch {
     return null
   }
