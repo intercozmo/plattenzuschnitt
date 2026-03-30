@@ -41,6 +41,9 @@ export interface CutStep {
   position: number;    // mm from plate origin
   context: string;     // human-readable context, e.g. "im oberen Teil"
   subSteps?: CutStep[];
+  panelWidth?: number;   // width of the panel being cut
+  panelHeight?: number;  // height of the panel being cut
+  pieceName?: string;    // name of the piece placed by this cut (if any)
 }
 
 export interface CutPlan {
