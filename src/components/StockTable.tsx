@@ -3,10 +3,10 @@ import InlineTable, { type Column, type Row } from './InlineTable'
 import { useStore } from '../store'
 
 const COLUMNS: Column[] = [
-  { key: 'width', label: 'Breite (mm)', type: 'number', width: '90px' },
-  { key: 'height', label: 'Länge (mm)', type: 'number', width: '90px' },
-  { key: 'quantity', label: 'Anz.', type: 'number', width: '50px' },
-  { key: 'label', label: 'Bezeichnung', type: 'text' },
+  { key: 'width',    label: 'B',    type: 'number', width: '52px' },
+  { key: 'height',   label: 'L',    type: 'number', width: '52px' },
+  { key: 'quantity', label: 'Anz',  type: 'number', width: '40px' },
+  { key: 'label',    label: 'Bezeichnung', type: 'text' },
 ]
 
 export default function StockTable() {

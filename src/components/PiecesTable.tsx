@@ -41,6 +41,7 @@ export default function PiecesTable() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<EditValues>({ width: '', height: '', quantity: '', name: '', grain: 'any' })
   const [importErrors, setImportErrors] = useState<string[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
   const firstInputRef = useRef<HTMLInputElement>(null)
   const fileInputId = useId()
 
@@ -113,9 +114,7 @@ export default function PiecesTable() {
     updateCutPiece(piece.id, { grain: nextGrain(piece.grain) })
   }
 
-  function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  function handleCsvFile(file: File) {
     const reader = new FileReader()
     reader.onload = (ev) => {
       const text = ev.target?.result
@@ -127,12 +126,39 @@ export default function PiecesTable() {
       setImportErrors(result.errors)
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handleCsvFile(file)
     // Reset input so same file can be re-imported
     e.target.value = ''
   }
 
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) setIsDragOver(true)
+  }
+
+  function handleDragLeave() { setIsDragOver(false) }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (!file) return
+    handleCsvFile(file)
+  }
+
   return (
     <div className="w-full">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`rounded transition-all ${isDragOver ? 'outline-2 outline-dashed outline-blue-400 bg-blue-50' : ''}`}
+      >
       {cutPieces.length === 0 ? (
         <p className="text-slate-400 text-sm py-2 text-center">Keine Einträge vorhanden.</p>
       ) : (
@@ -140,11 +166,11 @@ export default function PiecesTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200">
-                <th style={{ width: '80px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Breite (mm)</th>
-                <th style={{ width: '80px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Länge (mm)</th>
-                <th style={{ width: '50px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Anz.</th>
+                <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">B</th>
+                <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">L</th>
+                <th style={{ width: '40px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Anz</th>
                 <th className="text-left text-slate-500 font-medium py-2 pr-3">Name</th>
-                <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">Maserung</th>
+                <th style={{ width: '52px' }} className="text-left text-slate-500 font-medium py-2 pr-3">M</th>
                 <th className="w-8" />
               </tr>
             </thead>
@@ -286,6 +312,7 @@ export default function PiecesTable() {
           </table>
         </div>
       )}
+      </div>
 
       <button
         type="button"
