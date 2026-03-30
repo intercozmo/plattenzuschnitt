@@ -1,24 +1,28 @@
 // src/components/CutDiagram.tsx
 import { useRef, useState } from 'react'
 import type { PlacedPlate, CutPiece } from '../types'
+import { useResizeObserver } from '../hooks/useResizeObserver'
 
 interface Props {
   plate: PlacedPlate
   pieceColorMap: Map<string, string>
+  kerf: number
 }
 
 interface TooltipState {
   piece: CutPiece
 }
 
-export default function CutDiagram({ plate, pieceColorMap }: Props) {
+export default function CutDiagram({ plate, pieceColorMap, kerf }: Props) {
   const [scale, setScale] = useState(1)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const lastDist = useRef(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { width: containerWidth } = useResizeObserver(containerRef as React.RefObject<HTMLElement>)
 
   const svgW = plate.stock.width
   const svgH = plate.stock.height
-  const displayW = 340
+  const displayW = containerWidth || 400
   const displayH = (svgH / svgW) * displayW
 
   function toDisplay(mm: number) { return (mm / svgW) * displayW }
@@ -43,14 +47,46 @@ export default function CutDiagram({ plate, pieceColorMap }: Props) {
     }
   }
 
+  // Compute kerf lines (deduplicated)
+  const kerfXSet = new Set<number>()
+  const kerfYSet = new Set<number>()
+  if (kerf > 0) {
+    for (const p of plate.placements) {
+      const pw = p.rotated ? p.piece.height : p.piece.width
+      const ph = p.rotated ? p.piece.width : p.piece.height
+      const rightEdge = p.x + pw
+      const bottomEdge = p.y + ph
+      if (rightEdge + kerf <= svgW) {
+        kerfXSet.add(rightEdge)
+      }
+      if (bottomEdge + kerf <= svgH) {
+        kerfYSet.add(bottomEdge)
+      }
+    }
+  }
+  const kerfXLines = Array.from(kerfXSet)
+  const kerfYLines = Array.from(kerfYSet)
+
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded border bg-white"
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove}
-        onClick={() => setTooltip(null)}>
-        <svg width={displayW} height={displayH} viewBox={`0 0 ${svgW} ${svgH}`}
-          style={{ transform: `scale(${scale})`, transformOrigin: 'top left', display: 'block' }}>
+      {/* Dimension label: width above/below */}
+      <div
+        ref={containerRef}
+        className="overflow-hidden rounded border bg-white"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onClick={() => setTooltip(null)}
+      >
+        <svg
+          width={displayW}
+          height={displayH}
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          style={{ transform: `scale(${scale})`, transformOrigin: 'top left', display: 'block' }}
+        >
+          {/* Plate background */}
           <rect x={0} y={0} width={svgW} height={svgH} fill="#f1f5f9" stroke="#94a3b8" strokeWidth={10} />
+
+          {/* Pieces */}
           {plate.placements.map((p, i) => {
             const pw = p.rotated ? p.piece.height : p.piece.width
             const ph = p.rotated ? p.piece.width : p.piece.height
@@ -76,17 +112,43 @@ export default function CutDiagram({ plate, pieceColorMap }: Props) {
               </g>
             )
           })}
+
+          {/* Kerf vertical lines (at right edge of pieces, spanning full plate height) */}
+          {kerfXLines.map(x => (
+            <line
+              key={`kx-${x}`}
+              x1={x} y1={0} x2={x} y2={svgH}
+              stroke="red" strokeWidth={3} strokeDasharray="20,10" opacity={0.5}
+            />
+          ))}
+
+          {/* Kerf horizontal lines (at bottom edge of pieces, spanning full plate width) */}
+          {kerfYLines.map(y => (
+            <line
+              key={`ky-${y}`}
+              x1={0} y1={y} x2={svgW} y2={y}
+              stroke="red" strokeWidth={3} strokeDasharray="20,10" opacity={0.5}
+            />
+          ))}
         </svg>
       </div>
+
+      {/* Dimension labels outside SVG */}
+      <div className="flex justify-between items-center mt-1 px-1">
+        <p className="text-xs text-slate-500">
+          {plate.stock.width} × {plate.stock.height} mm
+        </p>
+        <p className="text-xs text-slate-500">
+          Verschnitt: {plate.wastePct.toFixed(1)}%
+        </p>
+      </div>
+
       {tooltip && (
         <div className="absolute top-2 left-2 bg-slate-800 text-white text-sm rounded px-3 py-2 z-10">
           <strong>{tooltip.piece.name}</strong><br />
           {tooltip.piece.width}×{tooltip.piece.height} mm
         </div>
       )}
-      <p className="text-xs text-slate-500 mt-1 text-right">
-        Verschnitt: {plate.wastePct.toFixed(1)}%
-      </p>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { COLOR_PALETTE } from '../constants'
 import CutDiagram from '../components/CutDiagram'
 import CutSequence from '../components/CutSequence'
 import MaterialSummary from '../components/MaterialSummary'
+import { useStore } from '../store'
 import type { CutPlan } from '../types'
 
 type Tab = 'diagram' | 'sequence' | 'material'
@@ -16,6 +17,7 @@ interface Props {
 export default function ResultScreen({ plan, onBack }: Props) {
   const [tab, setTab] = useState<Tab>('diagram')
   const [selectedPlateIdx, setSelectedPlateIdx] = useState(0)
+  const kerf = useStore(s => s.kerf)
 
   const pieceColorMap = new Map<string, string>()
   plan.plates.forEach(plate => {
@@ -65,7 +67,7 @@ export default function ResultScreen({ plan, onBack }: Props) {
         ) : (
           <>
             {tab === 'diagram' && currentPlate && (
-              <CutDiagram plate={currentPlate} pieceColorMap={pieceColorMap} />
+              <CutDiagram plate={currentPlate} pieceColorMap={pieceColorMap} kerf={kerf} />
             )}
             {tab === 'sequence' && currentPlate && (
               <CutSequence plate={currentPlate} />
