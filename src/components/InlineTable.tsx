@@ -56,7 +56,7 @@ export default function InlineTable({
     const values: Record<string, unknown> = {}
     for (const col of columns) {
       values[col.key] = col.type === 'number'
-        ? Number(editValues[col.key] ?? 0)
+        ? Math.max(0, Number(editValues[col.key] ?? 0))
         : editValues[col.key] ?? ''
     }
     onSave(id, values)
@@ -106,19 +106,21 @@ export default function InlineTable({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, rowIndex) => {
+              {rows.map((row) => {
                 const isEditing = editingId === row.id
                 return (
                   <tr
                     key={row.id}
                     className={`border-b border-slate-100 last:border-0 ${isEditing ? 'bg-blue-50' : 'hover:bg-slate-50 cursor-pointer'}`}
                     onClick={() => { if (!isEditing) startEdit(row) }}
+                    tabIndex={isEditing ? -1 : 0}
+                    onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(row) } }}
                   >
                     {columns.map((col, colIndex) => (
                       <td key={col.key} className="py-2 pr-3 last:pr-0" onClick={e => isEditing && e.stopPropagation()}>
                         {isEditing ? (
                           <input
-                            ref={colIndex === 0 && rowIndex >= 0 ? firstInputRef : undefined}
+                            ref={colIndex === 0 ? firstInputRef : undefined}
                             type={col.type === 'number' ? 'number' : 'text'}
                             min={col.type === 'number' ? 0 : undefined}
                             value={editValues[col.key] ?? ''}
@@ -139,6 +141,7 @@ export default function InlineTable({
                             onClick={() => commitSave(row.id)}
                             className="text-green-600 hover:text-green-700 text-xs px-1 font-medium"
                             title="Speichern"
+                            aria-label="Speichern"
                           >
                             ✓
                           </button>
@@ -147,6 +150,7 @@ export default function InlineTable({
                             onClick={cancelEdit}
                             className="text-slate-400 hover:text-slate-600 text-xs px-1"
                             title="Abbrechen"
+                            aria-label="Abbrechen"
                           >
                             ✕
                           </button>
@@ -157,6 +161,7 @@ export default function InlineTable({
                           onClick={() => onDelete(row.id)}
                           className="text-slate-300 hover:text-red-500 text-xs px-1 transition-colors"
                           title="Löschen"
+                          aria-label="Löschen"
                         >
                           ✕
                         </button>

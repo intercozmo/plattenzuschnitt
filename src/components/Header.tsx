@@ -27,7 +27,10 @@ export default function Header({ onCompute, canCompute }: Props) {
           }
         `}
       >
-        {isDesktop ? 'Schnittplan berechnen ⚡' : 'Berechnen ⚡'}
+        {isDesktop
+          ? <>Schnittplan berechnen <span aria-hidden="true">⚡</span></>
+          : <>Berechnen <span aria-hidden="true">⚡</span></>
+        }
       </button>
     </header>
   )

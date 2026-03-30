@@ -1,20 +1,23 @@
 // src/components/CollapsibleSection.tsx
-import { useState } from 'react'
+import { useState, useId, type ReactNode } from 'react'
 
 interface Props {
   title: string
   defaultOpen?: boolean
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export default function CollapsibleSection({ title, defaultOpen = true, children }: Props) {
   const [open, setOpen] = useState(defaultOpen)
+  const contentId = useId()
 
   return (
     <div className="border border-slate-200 rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
+        aria-expanded={open}
+        aria-controls={contentId}
         className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-left font-medium text-slate-700 transition-colors"
       >
         <span>{title}</span>
@@ -25,9 +28,14 @@ export default function CollapsibleSection({ title, defaultOpen = true, children
           ▶
         </span>
       </button>
-      <div className={`transition-all duration-200 ${open ? 'block' : 'hidden'}`}>
-        <div className="p-4">
-          {children}
+      <div
+        id={contentId}
+        className={`grid transition-all duration-200 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+      >
+        <div className="overflow-hidden">
+          <div className="p-4">
+            {children}
+          </div>
         </div>
       </div>
     </div>
