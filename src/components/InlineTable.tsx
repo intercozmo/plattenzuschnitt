@@ -127,7 +127,8 @@ export default function InlineTable({
                               value={editValues[col.key] ?? ''}
                               onChange={e => handleFieldChange(col.key, e.target.value)}
                               onKeyDown={e => handleKeyDown(e, row.id)}
-                              className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              onFocus={e => e.target.select()}
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
