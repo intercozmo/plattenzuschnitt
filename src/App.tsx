@@ -58,7 +58,7 @@ export default function App() {
     return (
       <div className="h-screen overflow-hidden flex flex-col">
         <Header onCompute={handleCompute} canCompute={canCompute} />
-        <div className="grid grid-cols-[360px_1fr_300px] h-[calc(100vh-52px)] overflow-hidden">
+        <div className="grid grid-cols-[420px_1fr_300px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
             <InputPanel />
           </aside>

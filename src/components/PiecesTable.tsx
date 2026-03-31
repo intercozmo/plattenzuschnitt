@@ -249,7 +249,7 @@ export default function PiecesTable() {
                               onChange={e => setEditValues(v => ({ ...v, width: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{piece.width}</span>
@@ -265,7 +265,7 @@ export default function PiecesTable() {
                               onChange={e => setEditValues(v => ({ ...v, height: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{piece.height}</span>
@@ -281,7 +281,7 @@ export default function PiecesTable() {
                               onChange={e => setEditValues(v => ({ ...v, thickness: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{piece.thickness}</span>
@@ -297,7 +297,7 @@ export default function PiecesTable() {
                               onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{piece.quantity}</span>
@@ -312,7 +312,7 @@ export default function PiecesTable() {
                               onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              className="w-full bg-white text-slate-800 border border-blue-300 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                             />
                           ) : (
                             <span className="text-slate-700">{piece.name}</span>
