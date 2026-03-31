@@ -1,38 +1,99 @@
 // src/App.tsx
 import { useState } from 'react'
-import StockScreen from './screens/StockScreen'
-import PiecesScreen from './screens/PiecesScreen'
-import ResultScreen from './screens/ResultScreen'
+import { useStore } from './store'
+import { computeCutPlan } from './algorithm/guillotine'
+import { MAX_TOTAL_PIECES } from './constants'
+import { useMediaQuery } from './hooks/useMediaQuery'
+import Header from './components/Header'
+import InputPanel from './components/InputPanel'
+import DiagramPanel from './components/DiagramPanel'
+import ResultsPanel from './components/ResultsPanel'
+import MobileTabBar from './components/MobileTabBar'
 import type { CutPlan } from './types'
 
-type Screen = 'stock' | 'pieces' | 'result'
+type Tab = 'eingabe' | 'diagramm' | 'ergebnis'
+
+function EmptyDiagramState() {
+  return (
+    <div className="h-full flex items-center justify-center p-8">
+      <p className="text-slate-400 text-center text-sm">
+        Füge Platten und Stücke hinzu, dann klicke Berechnen
+      </p>
+    </div>
+  )
+}
+
+function EmptyResultsState() {
+  return (
+    <div className="h-full flex items-center justify-center p-8">
+      <p className="text-slate-400 text-center text-sm">
+        Ergebnisse erscheinen nach der Berechnung
+      </p>
+    </div>
+  )
+}
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('stock')
   const [plan, setPlan] = useState<CutPlan | null>(null)
+  const [activeTab, setActiveTab] = useState<Tab>('eingabe')
 
-  function handlePlanReady(p: CutPlan) {
-    setPlan(p)
-    setScreen('result')
+  const { cutPieces, stockPlates, kerf } = useStore()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  const totalPieces = cutPieces.reduce((s, p) => s + p.quantity, 0)
+  const canCompute = cutPieces.length > 0 && stockPlates.length > 0 && totalPieces <= MAX_TOTAL_PIECES
+
+  function handleCompute() {
+    const { stockPlates, cutPieces, kerf, priority, grainEnabled } = useStore.getState()
+    // When grain is disabled, treat all pieces as freely rotatable
+    const pieces = grainEnabled
+      ? cutPieces
+      : cutPieces.map(p => ({ ...p, grain: 'any' as const }))
+    const newPlan = computeCutPlan(stockPlates, pieces, kerf, priority)
+    setPlan(newPlan)
+    if (!isDesktop) setActiveTab('diagramm')
+  }
+
+  if (isDesktop) {
+    return (
+      <div className="h-screen overflow-hidden flex flex-col">
+        <Header onCompute={handleCompute} canCompute={canCompute} />
+        <div className="grid grid-cols-[420px_1fr_300px] h-[calc(100vh-52px)] overflow-hidden">
+          <aside className="overflow-y-auto border-r border-slate-200 bg-white">
+            <InputPanel />
+          </aside>
+          <main className="overflow-y-auto bg-slate-50">
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} /> : <EmptyDiagramState />}
+          </main>
+          <aside className="overflow-y-auto border-l border-slate-200 bg-white">
+            {plan ? <ResultsPanel plan={plan} kerf={kerf} /> : <EmptyResultsState />}
+          </aside>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 max-w-lg mx-auto">
-      {screen === 'stock' && (
-        <StockScreen onNext={() => setScreen('pieces')} />
-      )}
-      {screen === 'pieces' && (
-        <PiecesScreen
-          onBack={() => setScreen('stock')}
-          onPlanReady={handlePlanReady}
-        />
-      )}
-      {screen === 'result' && plan && (
-        <ResultScreen
-          plan={plan}
-          onBack={() => setScreen('pieces')}
-        />
-      )}
+    <div className="h-screen overflow-hidden flex flex-col">
+      <Header onCompute={handleCompute} canCompute={canCompute} />
+      <div className="h-[calc(100vh-52px-48px)] overflow-hidden">
+        {activeTab === 'eingabe' && (
+          <div className="h-full overflow-y-auto bg-white">
+            <InputPanel />
+          </div>
+        )}
+        {activeTab === 'diagramm' && (
+          <div className="h-full overflow-y-auto bg-slate-50">
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} /> : <EmptyDiagramState />}
+          </div>
+        )}
+        {activeTab === 'ergebnis' && (
+          <div className="h-full overflow-y-auto bg-white">
+            {plan ? <ResultsPanel plan={plan} kerf={kerf} /> : <EmptyResultsState />}
+          </div>
+        )}
+      </div>
+      <MobileTabBar activeTab={activeTab} onChange={setActiveTab} />
     </div>
   )
 }
