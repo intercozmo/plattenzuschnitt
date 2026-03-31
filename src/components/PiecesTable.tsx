@@ -196,11 +196,10 @@ export default function PiecesTable() {
                 <thead>
                   <tr className="bg-slate-100 border-b-2 border-slate-300">
                     <th
-                      style={{ width: '52px' }}
                       className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
-                      onClick={() => handleSort('width')}
+                      onClick={() => handleSort('name')}
                     >
-                      B {sortKey === 'width' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                      Name {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                     </th>
                     <th
                       style={{ width: '52px' }}
@@ -209,7 +208,15 @@ export default function PiecesTable() {
                     >
                       L {sortKey === 'height' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                     </th>
-                    <th style={{ width: '52px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">D</th>
+                    <th
+                      style={{ width: '52px' }}
+                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
+                      onClick={() => handleSort('width')}
+                    >
+                      B {sortKey === 'width' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th style={{ width: '40px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">D</th>
+                    <th style={{ width: '40px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">M</th>
                     <th
                       style={{ width: '40px' }}
                       className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
@@ -217,13 +224,6 @@ export default function PiecesTable() {
                     >
                       Anz {sortKey === 'quantity' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                     </th>
-                    <th
-                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 cursor-pointer select-none hover:bg-slate-200"
-                      onClick={() => handleSort('name')}
-                    >
-                      Name {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
-                    </th>
-                    <th style={{ width: '52px' }} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100">M</th>
                     <th className="w-8 border border-slate-300 bg-slate-100" />
                   </tr>
                 </thead>
@@ -238,21 +238,20 @@ export default function PiecesTable() {
                         tabIndex={isEditing ? -1 : 0}
                         onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(piece) } }}
                       >
-                        {/* width */}
+                        {/* name */}
                         <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
                           {isEditing ? (
                             <input
                               ref={firstInputRef}
-                              type="number"
-                              min={1}
-                              value={editValues.width}
-                              onChange={e => setEditValues(v => ({ ...v, width: e.target.value }))}
+                              type="text"
+                              value={editValues.name}
+                              onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
                               onKeyDown={e => handleKeyDown(e, piece.id)}
                               onFocus={e => e.target.select()}
                               className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
                             />
                           ) : (
-                            <span className="text-slate-700">{piece.width}</span>
+                            <span className="text-slate-700">{piece.name}</span>
                           )}
                         </td>
                         {/* height */}
@@ -271,6 +270,22 @@ export default function PiecesTable() {
                             <span className="text-slate-700">{piece.height}</span>
                           )}
                         </td>
+                        {/* width */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValues.width}
+                              onChange={e => setEditValues(v => ({ ...v, width: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              onFocus={e => e.target.select()}
+                              className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.width}</span>
+                          )}
+                        </td>
                         {/* thickness */}
                         <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
                           {isEditing ? (
@@ -285,37 +300,6 @@ export default function PiecesTable() {
                             />
                           ) : (
                             <span className="text-slate-700">{piece.thickness}</span>
-                          )}
-                        </td>
-                        {/* quantity */}
-                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              min={1}
-                              value={editValues.quantity}
-                              onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
-                              onKeyDown={e => handleKeyDown(e, piece.id)}
-                              onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
-                            />
-                          ) : (
-                            <span className="text-slate-700">{piece.quantity}</span>
-                          )}
-                        </td>
-                        {/* name */}
-                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editValues.name}
-                              onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
-                              onKeyDown={e => handleKeyDown(e, piece.id)}
-                              onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
-                            />
-                          ) : (
-                            <span className="text-slate-700">{piece.name}</span>
                           )}
                         </td>
                         {/* grain */}
@@ -341,6 +325,22 @@ export default function PiecesTable() {
                             >
                               {grainLabel(piece.grain)}
                             </button>
+                          )}
+                        </td>
+                        {/* quantity */}
+                        <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min={1}
+                              value={editValues.quantity}
+                              onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
+                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              onFocus={e => e.target.select()}
+                              className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
+                            />
+                          ) : (
+                            <span className="text-slate-700">{piece.quantity}</span>
                           )}
                         </td>
                         {/* actions */}

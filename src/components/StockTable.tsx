@@ -4,12 +4,12 @@ import { useStore } from '../store'
 import type { StockPlate } from '../types'
 
 const COLUMNS: Column[] = [
-  { key: 'width',     label: 'B',    type: 'number', width: '52px' },
+  { key: 'label',     label: 'Bezeichnung', type: 'text' },
   { key: 'height',    label: 'L',    type: 'number', width: '52px' },
+  { key: 'width',     label: 'B',    type: 'number', width: '52px' },
   { key: 'thickness', label: 'D',    type: 'number', width: '40px' },
   { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px' },
   { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px' },
-  { key: 'label',     label: 'Bezeichnung', type: 'text' },
 ]
 
 export default function StockTable() {
