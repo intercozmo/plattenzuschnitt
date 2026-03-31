@@ -1,11 +1,13 @@
 // src/components/StockTable.tsx
 import InlineTable, { type Column, type Row } from './InlineTable'
 import { useStore } from '../store'
+import type { StockPlate } from '../types'
 
 const COLUMNS: Column[] = [
   { key: 'width',     label: 'B',    type: 'number', width: '52px' },
   { key: 'height',    label: 'L',    type: 'number', width: '52px' },
   { key: 'thickness', label: 'D',    type: 'number', width: '40px' },
+  { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px' },
   { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px' },
   { key: 'label',     label: 'Bezeichnung', type: 'text' },
 ]
@@ -21,12 +23,13 @@ export default function StockTable() {
     width: p.width,
     height: p.height,
     thickness: p.thickness,
+    grain: p.grain,
     quantity: p.quantity,
     label: p.label,
   }))
 
   function handleAdd() {
-    addStockPlate('', 800, 600, 18, 1)
+    addStockPlate('', 800, 600, 18, 'any', 1)
   }
 
   function handleSave(id: string, values: Record<string, unknown>) {
@@ -37,6 +40,7 @@ export default function StockTable() {
       width,
       height,
       thickness,
+      grain: (values['grain'] as string || 'any') as StockPlate['grain'],
       quantity: Number(values['quantity']),
       label: String(values['label'] ?? ''),
     })
@@ -44,6 +48,11 @@ export default function StockTable() {
 
   function handleDelete(id: string) {
     removeStockPlate(id)
+  }
+
+  function handleGrainToggle(id: string, current: string) {
+    const next = current === 'any' ? 'horizontal' : current === 'horizontal' ? 'vertical' : 'any'
+    updateStockPlate(id, { grain: next as StockPlate['grain'] })
   }
 
   return (
@@ -54,6 +63,7 @@ export default function StockTable() {
       onSave={handleSave}
       onDelete={handleDelete}
       addLabel="+ Platte hinzufügen"
+      onGrainToggle={handleGrainToggle}
     />
   )
 }

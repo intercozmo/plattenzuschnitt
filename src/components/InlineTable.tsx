@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 export interface Column {
   key: string
   label: string
-  type: 'text' | 'number'
+  type: 'text' | 'number' | 'grain'
   width?: string
 }
 
@@ -20,6 +20,19 @@ interface Props {
   onDelete: (id: string) => void
   onAdd: () => void
   addLabel?: string
+  onGrainToggle?: (id: string, currentGrain: string) => void
+}
+
+function grainLabel(grain: string): string {
+  if (grain === 'horizontal') return '→'
+  if (grain === 'vertical') return '↓'
+  return '↔'
+}
+
+function grainTitle(grain: string): string {
+  if (grain === 'horizontal') return 'Längs'
+  if (grain === 'vertical') return 'Quer'
+  return 'Keine'
 }
 
 export default function InlineTable({
@@ -29,6 +42,7 @@ export default function InlineTable({
   onDelete,
   onAdd,
   addLabel = '+ Hinzufügen',
+  onGrainToggle,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
@@ -55,9 +69,13 @@ export default function InlineTable({
   function commitSave(id: string) {
     const values: Record<string, unknown> = {}
     for (const col of columns) {
-      values[col.key] = col.type === 'number'
-        ? Math.max(0, Number(editValues[col.key] ?? 0))
-        : editValues[col.key] ?? ''
+      if (col.type === 'number') {
+        values[col.key] = Math.max(0, Number(editValues[col.key] ?? 0))
+      } else if (col.type === 'grain') {
+        values[col.key] = editValues[col.key] ?? 'any'
+      } else {
+        values[col.key] = editValues[col.key] ?? ''
+      }
     }
     onSave(id, values)
     setEditingId(null)
@@ -120,18 +138,42 @@ export default function InlineTable({
                       {columns.map((col, colIndex) => (
                         <td key={col.key} className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
                           {isEditing ? (
-                            <input
-                              ref={colIndex === 0 ? firstInputRef : undefined}
-                              type={col.type === 'number' ? 'number' : 'text'}
-                              min={col.type === 'number' ? 0 : undefined}
-                              value={editValues[col.key] ?? ''}
-                              onChange={e => handleFieldChange(col.key, e.target.value)}
-                              onKeyDown={e => handleKeyDown(e, row.id)}
-                              onFocus={e => e.target.select()}
-                              className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
-                            />
+                            col.type === 'grain' ? (
+                              <select
+                                value={editValues[col.key] ?? 'any'}
+                                onChange={e => handleFieldChange(col.key, e.target.value)}
+                                onKeyDown={e => handleKeyDown(e, row.id)}
+                                className="bg-white text-slate-800 border-0 outline-none w-full text-sm py-0.5"
+                              >
+                                <option value="any">Keine</option>
+                                <option value="horizontal">Längs</option>
+                                <option value="vertical">Quer</option>
+                              </select>
+                            ) : (
+                              <input
+                                ref={colIndex === 0 ? firstInputRef : undefined}
+                                type={col.type === 'number' ? 'number' : 'text'}
+                                min={col.type === 'number' ? 0 : undefined}
+                                value={editValues[col.key] ?? ''}
+                                onChange={e => handleFieldChange(col.key, e.target.value)}
+                                onKeyDown={e => handleKeyDown(e, row.id)}
+                                onFocus={e => e.target.select()}
+                                className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
+                              />
+                            )
                           ) : (
-                            <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
+                            col.type === 'grain' ? (
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); onGrainToggle?.(row.id, String(row[col.key])) }}
+                                title={grainTitle(String(row[col.key]))}
+                                className="text-slate-700 text-sm px-1"
+                              >
+                                {grainLabel(String(row[col.key]))}
+                              </button>
+                            ) : (
+                              <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
+                            )
                           )}
                         </td>
                       ))}

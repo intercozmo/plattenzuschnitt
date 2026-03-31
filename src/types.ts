@@ -8,6 +8,7 @@ export interface StockPlate {
   width: number;   // mm
   height: number;  // mm
   thickness: number; // mm - material thickness
+  grain: Grain;
   quantity: number;
 }
 
