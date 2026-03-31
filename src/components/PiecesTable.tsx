@@ -134,6 +134,13 @@ export default function PiecesTable() {
     }
   }
 
+  function tabToRow(id: string, direction: 'next' | 'prev') {
+    const idx = cutPieces.findIndex(p => p.id === id)
+    const target = direction === 'next' ? cutPieces[idx + 1] : cutPieces[idx - 1]
+    commitSave(id)
+    if (target) setTimeout(() => startEdit(target), 0)
+  }
+
   function handleAdd() {
     addCutPiece('', 400, 300, 18, 1, 'any')
   }
@@ -236,7 +243,13 @@ export default function PiecesTable() {
                         className={`${isEditing ? 'bg-blue-50' : (rowIndex % 2 === 0 ? 'bg-white hover:bg-blue-50 cursor-pointer' : 'bg-slate-50 hover:bg-blue-50 cursor-pointer')}`}
                         onClick={() => { if (!isEditing) startEdit(piece) }}
                         tabIndex={isEditing ? -1 : 0}
-                        onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(piece) } }}
+                        onKeyDown={e => {
+                          if (!isEditing) {
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit(piece) }
+                            else if (e.key === 'ArrowDown') { e.preventDefault(); (e.currentTarget.nextElementSibling as HTMLElement)?.focus() }
+                            else if (e.key === 'ArrowUp') { e.preventDefault(); (e.currentTarget.previousElementSibling as HTMLElement)?.focus() }
+                          }
+                        }}
                       >
                         {/* name */}
                         <td className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
@@ -246,7 +259,10 @@ export default function PiecesTable() {
                               type="text"
                               value={editValues.name}
                               onChange={e => setEditValues(v => ({ ...v, name: e.target.value }))}
-                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); tabToRow(piece.id, 'prev') }
+                                else handleKeyDown(e, piece.id)
+                              }}
                               onFocus={e => e.target.select()}
                               className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
                             />
@@ -335,7 +351,10 @@ export default function PiecesTable() {
                               min={1}
                               value={editValues.quantity}
                               onChange={e => setEditValues(v => ({ ...v, quantity: e.target.value }))}
-                              onKeyDown={e => handleKeyDown(e, piece.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); tabToRow(piece.id, 'next') }
+                                else handleKeyDown(e, piece.id)
+                              }}
                               onFocus={e => e.target.select()}
                               className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
                             />

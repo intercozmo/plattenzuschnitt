@@ -87,13 +87,33 @@ export default function InlineTable({
     setEditValues({})
   }
 
-  function handleKeyDown(e: React.KeyboardEvent, id: string) {
+  function handleKeyDown(e: React.KeyboardEvent, id: string, colIndex: number) {
     if (e.key === 'Enter') {
       e.preventDefault()
       commitSave(id)
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancelEdit()
+    } else if (e.key === 'Tab' && !e.shiftKey && colIndex === columns.length - 1) {
+      e.preventDefault()
+      const idx = rows.findIndex(r => r.id === id)
+      const nextRow = rows[idx + 1]
+      commitSave(id)
+      if (nextRow) {
+        const initial: Record<string, string> = {}
+        for (const col of columns) initial[col.key] = String(nextRow[col.key] ?? '')
+        setTimeout(() => { setEditingId(nextRow.id); setEditValues(initial) }, 0)
+      }
+    } else if (e.key === 'Tab' && e.shiftKey && colIndex === 0) {
+      e.preventDefault()
+      const idx = rows.findIndex(r => r.id === id)
+      const prevRow = rows[idx - 1]
+      commitSave(id)
+      if (prevRow) {
+        const initial: Record<string, string> = {}
+        for (const col of columns) initial[col.key] = String(prevRow[col.key] ?? '')
+        setTimeout(() => { setEditingId(prevRow.id); setEditValues(initial) }, 0)
+      }
     }
   }
 
@@ -133,7 +153,13 @@ export default function InlineTable({
                       className={`${isEditing ? 'bg-blue-50' : (rowIndex % 2 === 0 ? 'bg-white hover:bg-blue-50 cursor-pointer' : 'bg-slate-50 hover:bg-blue-50 cursor-pointer')}`}
                       onClick={() => { if (!isEditing) startEdit(row) }}
                       tabIndex={isEditing ? -1 : 0}
-                      onKeyDown={e => { if (!isEditing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startEdit(row) } }}
+                      onKeyDown={e => {
+                        if (!isEditing) {
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit(row) }
+                          else if (e.key === 'ArrowDown') { e.preventDefault(); (e.currentTarget.nextElementSibling as HTMLElement)?.focus() }
+                          else if (e.key === 'ArrowUp') { e.preventDefault(); (e.currentTarget.previousElementSibling as HTMLElement)?.focus() }
+                        }
+                      }}
                     >
                       {columns.map((col, colIndex) => (
                         <td key={col.key} className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
@@ -142,7 +168,7 @@ export default function InlineTable({
                               <select
                                 value={editValues[col.key] ?? 'any'}
                                 onChange={e => handleFieldChange(col.key, e.target.value)}
-                                onKeyDown={e => handleKeyDown(e, row.id)}
+                                onKeyDown={e => handleKeyDown(e, row.id, colIndex)}
                                 className="bg-white text-slate-800 border-0 outline-none w-full text-sm py-0.5"
                               >
                                 <option value="any">Keine</option>
@@ -156,7 +182,7 @@ export default function InlineTable({
                                 min={col.type === 'number' ? 0 : undefined}
                                 value={editValues[col.key] ?? ''}
                                 onChange={e => handleFieldChange(col.key, e.target.value)}
-                                onKeyDown={e => handleKeyDown(e, row.id)}
+                                onKeyDown={e => handleKeyDown(e, row.id, colIndex)}
                                 onFocus={e => e.target.select()}
                                 className="w-full bg-white text-slate-800 border-0 outline-none px-1 py-0.5 text-sm"
                               />
