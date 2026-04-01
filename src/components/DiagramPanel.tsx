@@ -7,6 +7,8 @@ import type { CutPlan, PlacedPlate } from '../types'
 interface Props {
   plan: CutPlan
   kerf: number
+  trimLeft: number
+  trimTop: number
   onBack?: () => void
 }
 
@@ -43,7 +45,7 @@ async function exportPlateAsJpg(svgElement: SVGElement, filename: string) {
   }, 'image/jpeg', 0.92)
 }
 
-export default function DiagramPanel({ plan, kerf, onBack }: Props) {
+export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack }: Props) {
   // Build color map from all placements across all plates
   const pieceColorMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -190,7 +192,7 @@ export default function DiagramPanel({ plan, kerf, onBack }: Props) {
                   className="text-sm font-medium text-slate-700 cursor-pointer"
                 >
                   Platte {idx + 1}/{plan.plates.length}:{' '}
-                  {plate.stock.label ? `${plate.stock.label} ` : ''}{plate.stock.width}×{plate.stock.height} mm
+                  {plate.stock.label ? `${plate.stock.label} ` : ''}L {plate.stock.height} × B {plate.stock.width} mm
                 </label>
               </div>
 
@@ -211,6 +213,8 @@ export default function DiagramPanel({ plan, kerf, onBack }: Props) {
                   plate={plate}
                   pieceColorMap={pieceColorMap}
                   kerf={kerf}
+                  trimLeft={trimLeft}
+                  trimTop={trimTop}
                 />
               </div>
             </div>

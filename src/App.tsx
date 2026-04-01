@@ -37,19 +37,19 @@ export default function App() {
   const [plan, setPlan] = useState<CutPlan | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('eingabe')
 
-  const { cutPieces, stockPlates, kerf } = useStore()
+  const { cutPieces, stockPlates, kerf, trimLeft, trimTop } = useStore()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const totalPieces = cutPieces.reduce((s, p) => s + p.quantity, 0)
   const canCompute = cutPieces.length > 0 && stockPlates.length > 0 && totalPieces <= MAX_TOTAL_PIECES
 
   function handleCompute() {
-    const { stockPlates, cutPieces, kerf, priority, grainEnabled } = useStore.getState()
+    const { stockPlates, cutPieces, kerf, priority, grainEnabled, trimLeft, trimTop } = useStore.getState()
     // When grain is disabled, treat all pieces as freely rotatable
     const pieces = grainEnabled
       ? cutPieces
       : cutPieces.map(p => ({ ...p, grain: 'any' as const }))
-    const newPlan = computeCutPlan(stockPlates, pieces, kerf, priority)
+    const newPlan = computeCutPlan(stockPlates, pieces, kerf, priority, trimLeft, trimTop)
     setPlan(newPlan)
     if (!isDesktop) setActiveTab('diagramm')
   }
@@ -63,7 +63,7 @@ export default function App() {
             <InputPanel />
           </aside>
           <main className="overflow-y-auto bg-slate-50">
-            {plan ? <DiagramPanel plan={plan} kerf={kerf} /> : <EmptyDiagramState />}
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} /> : <EmptyDiagramState />}
           </main>
           <aside className="overflow-y-auto border-l border-slate-200 bg-white">
             {plan ? <ResultsPanel plan={plan} kerf={kerf} /> : <EmptyResultsState />}
@@ -84,7 +84,7 @@ export default function App() {
         )}
         {activeTab === 'diagramm' && (
           <div className="h-full overflow-y-auto bg-slate-50">
-            {plan ? <DiagramPanel plan={plan} kerf={kerf} /> : <EmptyDiagramState />}
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} /> : <EmptyDiagramState />}
           </div>
         )}
         {activeTab === 'ergebnis' && (

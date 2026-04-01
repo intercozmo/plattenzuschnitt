@@ -72,4 +72,6 @@ export interface AppOptions {
   kerf: number;
   grainEnabled: boolean;
   priority: OptimizationPriority;
+  trimLeft: number;
+  trimTop: number;
 }

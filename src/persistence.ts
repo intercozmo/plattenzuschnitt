@@ -8,6 +8,8 @@ export interface PersistedState {
   kerf?: number;
   grainEnabled?: boolean;
   priority?: OptimizationPriority;
+  trimLeft?: number;
+  trimTop?: number;
 }
 
 export function loadState(): PersistedState | null {
@@ -44,6 +46,12 @@ export function loadState(): PersistedState | null {
     const validPriorities: OptimizationPriority[] = ['least-waste', 'least-cuts', 'balanced']
     if (validPriorities.includes(parsed.priority)) {
       result.priority = parsed.priority
+    }
+    if (typeof parsed.trimLeft === 'number') {
+      result.trimLeft = parsed.trimLeft
+    }
+    if (typeof parsed.trimTop === 'number') {
+      result.trimTop = parsed.trimTop
     }
     return result
   } catch {

@@ -5,9 +5,13 @@ export default function OptionsPanel() {
   const kerf = useStore(s => s.kerf)
   const grainEnabled = useStore(s => s.grainEnabled)
   const priority = useStore(s => s.priority)
+  const trimLeft = useStore(s => s.trimLeft)
+  const trimTop = useStore(s => s.trimTop)
   const setKerf = useStore(s => s.setKerf)
   const setGrainEnabled = useStore(s => s.setGrainEnabled)
   const setPriority = useStore(s => s.setPriority)
+  const setTrimLeft = useStore(s => s.setTrimLeft)
+  const setTrimTop = useStore(s => s.setTrimTop)
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,6 +61,41 @@ export default function OptionsPanel() {
           <option value="least-cuts">Wenig Schnitte</option>
           <option value="balanced">Ausgewogen</option>
         </select>
+      </div>
+
+      {/* Anschnitt */}
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-slate-700">Anschnitt (Kantenbeschlag)</span>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-600" htmlFor="options-trim-left">
+            Links (mm)
+          </label>
+          <input
+            id="options-trim-left"
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={trimLeft}
+            onChange={e => setTrimLeft(Number(e.target.value))}
+            className="w-24 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-600" htmlFor="options-trim-top">
+            Oben (mm)
+          </label>
+          <input
+            id="options-trim-top"
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={trimTop}
+            onChange={e => setTrimTop(Number(e.target.value))}
+            className="w-24 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
       </div>
     </div>
   )
