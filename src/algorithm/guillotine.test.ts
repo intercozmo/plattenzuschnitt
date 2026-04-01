@@ -198,6 +198,34 @@ describe('computeCutPlan', () => {
     expect(planVert.plates).toHaveLength(0)
     expect(planVert.unplacedPieces).toHaveLength(1)
   })
+
+  it('thickness mismatch: piece is not placed on wrong-thickness plate', () => {
+    // Stock plate: 18mm, piece: 10mm → must NOT be placed
+    const stock: StockPlate[] = [{ ...plate2440, thickness: 18, quantity: 5 }]
+    const pieces: CutPiece[] = [
+      { id: 'thin', name: 'Thin', width: 400, height: 300, thickness: 10, quantity: 1, grain: 'any' }
+    ]
+    const plan = computeCutPlan(stock, pieces)
+    expect(plan.unplacedPieces).toHaveLength(1)
+    expect(plan.plates).toHaveLength(0)
+  })
+
+  it('thickness match: pieces are correctly separated onto matching plates', () => {
+    // Two stock plates: 16mm and 10mm; pieces of each thickness must land on matching plate
+    const stock16: StockPlate = { id: 's16', label: '16mm', width: 2440, height: 1220, thickness: 16, grain: 'any', quantity: 2 }
+    const stock10: StockPlate = { id: 's10', label: '10mm', width: 2440, height: 1220, thickness: 10, grain: 'any', quantity: 2 }
+    const pieces: CutPiece[] = [
+      { id: 'a', name: 'Blende',    width: 150, height: 1600, thickness: 16, quantity: 1, grain: 'any' },
+      { id: 'b', name: 'Untersicht', width: 400, height: 1600, thickness: 10, quantity: 1, grain: 'any' },
+    ]
+    const plan = computeCutPlan([stock16, stock10], pieces)
+    expect(plan.unplacedPieces).toHaveLength(0)
+    for (const plate of plan.plates) {
+      for (const placement of plate.placements) {
+        expect(placement.piece.thickness).toBe(plate.stock.thickness)
+      }
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------
