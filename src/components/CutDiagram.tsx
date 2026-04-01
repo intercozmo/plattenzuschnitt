@@ -78,8 +78,14 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
   const svgW = transposed ? plate.stock.height : plate.stock.width
   const svgH = transposed ? plate.stock.width : plate.stock.height
 
+  // Extra margin for dimension annotations (in SVG units)
+  const marginLeft = 110
+  const marginTop = 70
+  const vbW = svgW + marginLeft
+  const vbH = svgH + marginTop
+
   const displayW = containerWidth || 400
-  const displayH = (svgH / svgW) * displayW
+  const displayH = (vbH / vbW) * displayW
 
   // In display space, trimLeft is always the left strip and trimTop is always the top strip
   // (they are already in display coordinates)
@@ -143,7 +149,7 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
         <svg
           width={displayW}
           height={displayH}
-          viewBox={`0 0 ${svgW} ${svgH}`}
+          viewBox={`-${marginLeft} -${marginTop} ${vbW} ${vbH}`}
           style={{ transform: `scale(${scale})`, transformOrigin: 'top left', display: 'block' }}
         >
           <defs>
@@ -163,18 +169,18 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
                 <rect
                   x={x} y={y}
                   width={w} height={h}
-                  fill="#e2e8f0"
-                  stroke="#94a3b8"
+                  fill="#fce7f3"
+                  stroke="#f9a8d4"
                   strokeWidth={3}
                   strokeDasharray="20 8"
-                  fillOpacity={0.6}
+                  fillOpacity={0.85}
                 />
                 {w > 100 && h > 60 && (
                   <>
                     <text x={x + w / 2} y={y + h / 2 - 20}
-                      textAnchor="middle" fontSize={40} fill="#94a3b8">Rest</text>
+                      textAnchor="middle" fontSize={40} fill="#be185d">Rest</text>
                     <text x={x + w / 2} y={y + h / 2 + 30}
-                      textAnchor="middle" fontSize={34} fill="#b0b8c4">
+                      textAnchor="middle" fontSize={34} fill="#db2777">
                       {w}×{h}
                     </text>
                   </>
@@ -326,14 +332,33 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
               )}
             </g>
           )}
+          {/* L dimension annotation (top) */}
+          <g stroke="#64748b" strokeWidth={3} fill="none">
+            <line x1={0} y1={-marginTop + 20} x2={svgW} y2={-marginTop + 20} />
+            <line x1={0} y1={-marginTop + 8} x2={0} y2={-marginTop + 32} />
+            <line x1={svgW} y1={-marginTop + 8} x2={svgW} y2={-marginTop + 32} />
+          </g>
+          <text x={svgW / 2} y={-marginTop + 12} textAnchor="middle"
+            fontSize={38} fill="#334155" fontWeight="500">
+            L = {svgW} mm
+          </text>
+
+          {/* B dimension annotation (left) */}
+          <g stroke="#64748b" strokeWidth={3} fill="none">
+            <line x1={-marginLeft + 25} y1={0} x2={-marginLeft + 25} y2={svgH} />
+            <line x1={-marginLeft + 12} y1={0} x2={-marginLeft + 38} y2={0} />
+            <line x1={-marginLeft + 12} y1={svgH} x2={-marginLeft + 38} y2={svgH} />
+          </g>
+          <text
+            x={-marginLeft + 15} y={svgH / 2}
+            textAnchor="middle" fontSize={38} fill="#334155" fontWeight="500"
+            transform={`rotate(-90, ${-marginLeft + 15}, ${svgH / 2})`}>
+            B = {svgH} mm
+          </text>
         </svg>
       </div>
 
-      {/* Dimension labels outside SVG */}
-      <div className="flex justify-between items-center mt-1 px-1">
-        <p className="text-xs text-slate-500">
-          L {plate.stock.height} mm × B {plate.stock.width} mm
-        </p>
+      <div className="flex justify-end items-center mt-1 px-1">
         <p className="text-xs text-slate-500">
           Verschnitt: {plate.wastePct.toFixed(1)}%
         </p>
