@@ -20,6 +20,7 @@ function canRotate(piece: CutPiece): boolean {
 }
 
 function fitsOnStock(piece: CutPiece, stock: StockPlate): boolean {
+  if (piece.thickness !== stock.thickness) return false
   if (piece.width <= stock.width && piece.height <= stock.height) return true
   if (canRotate(piece) && piece.height <= stock.width && piece.width <= stock.height) return true
   return false
@@ -244,6 +245,8 @@ export function computeCutPlan(
   cutPieces: CutPiece[],
   kerf = DEFAULT_KERF_MM,
   priority: OptimizationPriority = 'least-waste',
+  trimLeft = 0,
+  trimTop = 0,
 ): CutPlan {
   // Expand by quantity — each instance must be a distinct object so
   // reference-based tracking in placeOnPanel works correctly.
@@ -293,12 +296,25 @@ export function computeCutPlan(
 
     const { stock } = bestStock
 
+    // Determine if plate display is transposed (L=height is shown horizontally)
+    const transposed = stock.height > stock.width
+    // Map display-space trim to algorithm coordinate space
+    const algoTrimX = transposed ? trimTop : trimLeft
+    const algoTrimY = transposed ? trimLeft : trimTop
+    const algoOffsetX = algoTrimX > 0 ? algoTrimX + kerf : 0
+    const algoOffsetY = algoTrimY > 0 ? algoTrimY + kerf : 0
+    const usableW = Math.max(1, stock.width - algoOffsetX)
+    const usableH = Math.max(1, stock.height - algoOffsetY)
+
+    // Only pass pieces that actually fit this specific stock plate (thickness + dimensions)
+    const placeableOnThisStock = placeable.filter(p => fitsOnStock(p, stock))
+
     const result = placeOnPanel(
-      stock.width,
-      stock.height,
-      0,
-      0,
-      placeable,
+      usableW,
+      usableH,
+      algoOffsetX,
+      algoOffsetY,
+      placeableOnThisStock,
       kerf,
       priority,
     )

@@ -145,6 +145,22 @@ export default function PiecesTable() {
     addCutPiece('', 400, 300, 18, 1, 'any')
   }
 
+  function handleCsvExport() {
+    const grainExport = (g: GrainValue) => g === 'horizontal' ? 'Längs' : g === 'vertical' ? 'Quer' : ''
+    const header = 'Name;L;B;D;Maserung;Anzahl'
+    const rows = cutPieces.map(p =>
+      [p.name, p.height, p.width, p.thickness, grainExport(p.grain), p.quantity].join(';')
+    )
+    const csv = [header, ...rows].join('\r\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'stückliste.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function toggleGrainInReadMode(piece: CutPiece, e: React.MouseEvent) {
     e.stopPropagation()
     updateCutPiece(piece.id, { grain: nextGrain(piece.grain) })
@@ -415,8 +431,8 @@ export default function PiecesTable() {
         + Stück hinzufügen
       </button>
 
-      {/* CSV Import */}
-      <div className="mt-2">
+      {/* CSV Import / Export */}
+      <div className="mt-2 flex gap-3">
         <label
           htmlFor={fileInputId}
           className="inline-block text-sm text-slate-500 hover:text-slate-700 cursor-pointer underline underline-offset-2"
@@ -430,6 +446,15 @@ export default function PiecesTable() {
           onChange={handleCsvImport}
           className="sr-only"
         />
+        {cutPieces.length > 0 && (
+          <button
+            type="button"
+            onClick={handleCsvExport}
+            className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+          >
+            CSV exportieren
+          </button>
+        )}
       </div>
 
       {pendingImport && (

@@ -13,6 +13,8 @@ interface AppState {
   kerf: number;
   grainEnabled: boolean;
   priority: OptimizationPriority;
+  trimLeft: number;
+  trimTop: number;
 
   // Stock actions
   addStockPlate: (label: string, width: number, height: number, thickness: number, grain: Grain, quantity: number) => void;
@@ -28,6 +30,8 @@ interface AppState {
   setKerf: (kerf: number) => void;
   setGrainEnabled: (enabled: boolean) => void;
   setPriority: (priority: OptimizationPriority) => void;
+  setTrimLeft: (v: number) => void;
+  setTrimTop: (v: number) => void;
 }
 
 const persisted = loadState()
@@ -39,6 +43,8 @@ export const useStore = create<AppState>()(
     kerf: persisted?.kerf ?? DEFAULT_KERF_MM,
     grainEnabled: persisted?.grainEnabled ?? false,
     priority: persisted?.priority ?? 'least-waste',
+    trimLeft: persisted?.trimLeft ?? 0,
+    trimTop: persisted?.trimTop ?? 0,
 
     addStockPlate: (label, width, height, thickness, grain, quantity) =>
       set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, thickness, grain, quantity }] })),
@@ -63,6 +69,10 @@ export const useStore = create<AppState>()(
     setGrainEnabled: (enabled) => set({ grainEnabled: enabled }),
 
     setPriority: (priority) => set({ priority }),
+
+    setTrimLeft: (trimLeft) => set({ trimLeft }),
+
+    setTrimTop: (trimTop) => set({ trimTop }),
   }))
 )
 
@@ -74,8 +84,10 @@ useStore.subscribe(
     kerf: state.kerf,
     grainEnabled: state.grainEnabled,
     priority: state.priority,
+    trimLeft: state.trimLeft,
+    trimTop: state.trimTop,
   }),
-  ({ stockPlates, cutPieces, kerf, grainEnabled, priority }) =>
-    saveState({ stockPlates, cutPieces, kerf, grainEnabled, priority }),
+  ({ stockPlates, cutPieces, kerf, grainEnabled, priority, trimLeft, trimTop }) =>
+    saveState({ stockPlates, cutPieces, kerf, grainEnabled, priority, trimLeft, trimTop }),
   { equalityFn: shallow }
 )
