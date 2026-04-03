@@ -11,3 +11,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Upgrade @vitejs/plugin-react to ^6.0.0 in devDependencies. Add npm "overrides": { "vite-plugin-pwa": { "vite": "^8.0.0" } } to suppress the false peer dep conflict for vite-plugin-pwa. Regenerate lock file with npm install.
 - **Files changed:** package.json, package-lock.json
 ---
+
+## algorithm-perf-correctness — guillotine placeOnPanel exponential branching + wrong placedArea at MAX_DEPTH
+- **Date:** 2026-04-03
+- **Error patterns:** hangs, freeze, UI freeze, 40 pieces, exponential, placeOnPanel, MAX_DEPTH, placedArea, guillotine
+- **Root cause:** (1) placeOnPanel iterated ALL unique piece dimensions per level, each spawning 2 full recursive sub-trees — O(candidates^depth) complexity. (2) MAX_DEPTH early-return set placedArea=panelWidth*panelHeight despite placing zero pieces, inflating scores and corrupting best-path selection.
+- **Fix:** (1) Add MAX_CANDIDATES=3 constant; slice sorted array to candidates before the outer loop; use sorted.indexOf(piece) to build remaining so non-candidate pieces still reach sub-panels. (2) Change placedArea in MAX_DEPTH branch from panelWidth*panelHeight to 0.
+- **Files changed:** src/algorithm/guillotine.ts
+---
