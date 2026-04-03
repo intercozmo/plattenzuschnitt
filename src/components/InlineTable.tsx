@@ -80,6 +80,16 @@ export default function InlineTable({
     }
   }, [editingId])
 
+  // Auto-start editing when a new row appears (rows.length increased)
+  const prevLengthRef = useRef(rows.length)
+  useEffect(() => {
+    if (rows.length > prevLengthRef.current) {
+      const newest = rows[rows.length - 1]
+      if (newest) startEdit(newest)
+    }
+    prevLengthRef.current = rows.length
+  })
+
   function startEdit(row: Row) {
     if (editingId !== null && editingId !== row.id) {
       commitSave(editingId)
