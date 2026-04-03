@@ -27,6 +27,8 @@ interface AppState {
   addCutPiece: (name: string, width: number, height: number, thickness: number, quantity: number, grain: Grain) => void;
   updateCutPiece: (id: string, updates: Partial<Omit<CutPiece, 'id'>>) => void;
   removeCutPiece: (id: string) => void;
+  replaceCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
+  appendCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
 
   // Option actions
   setKerf: (kerf: number) => void;
@@ -71,6 +73,12 @@ export const useStore = create<AppState>()(
 
     removeCutPiece: (id) =>
       set(s => ({ cutPieces: s.cutPieces.filter(p => p.id !== id) })),
+
+    replaceCutPieces: (pieces) =>
+      set(() => ({ cutPieces: pieces.map(p => ({ id: nanoid(), ...p })) })),
+
+    appendCutPieces: (pieces) =>
+      set(s => ({ cutPieces: [...s.cutPieces, ...pieces.map(p => ({ id: nanoid(), ...p }))] })),
 
     setKerf: (kerf) => set({ kerf }),
 
