@@ -1,11 +1,13 @@
 // src/components/InlineTable.tsx
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 
 export interface Column {
   key: string
   label: string
   type: 'text' | 'number' | 'grain'
   width?: string
+  sortable?: boolean
+  csvLabel?: string   // overrides label in CSV export headers
 }
 
 export interface Row {
@@ -47,6 +49,30 @@ export default function InlineTable({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
   const firstInputRef = useRef<HTMLInputElement>(null)
+
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return rows
+    return [...rows].sort((a, b) => {
+      const av = a[sortKey]
+      const bv = b[sortKey]
+      const cmp = typeof av === 'string'
+        ? String(av).localeCompare(String(bv))
+        : Number(av) - Number(bv)
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [rows, sortKey, sortDir])
+
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   useEffect(() => {
     if (editingId !== null) {
@@ -96,8 +122,8 @@ export default function InlineTable({
       cancelEdit()
     } else if (e.key === 'Tab' && !e.shiftKey && colIndex === columns.length - 1) {
       e.preventDefault()
-      const idx = rows.findIndex(r => r.id === id)
-      const nextRow = rows[idx + 1]
+      const idx = sortedRows.findIndex(r => r.id === id)
+      const nextRow = sortedRows[idx + 1]
       commitSave(id)
       if (nextRow) {
         const initial: Record<string, string> = {}
@@ -106,8 +132,8 @@ export default function InlineTable({
       }
     } else if (e.key === 'Tab' && e.shiftKey && colIndex === 0) {
       e.preventDefault()
-      const idx = rows.findIndex(r => r.id === id)
-      const prevRow = rows[idx - 1]
+      const idx = sortedRows.findIndex(r => r.id === id)
+      const prevRow = sortedRows[idx - 1]
       commitSave(id)
       if (prevRow) {
         const initial: Record<string, string> = {}
@@ -135,9 +161,10 @@ export default function InlineTable({
                     <th
                       key={col.key}
                       style={col.width ? { width: col.width } : undefined}
-                      className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100"
+                      className={`text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 select-none${col.sortable ? ' cursor-pointer hover:bg-slate-200' : ''}`}
+                      onClick={col.sortable ? () => handleSort(col.key) : undefined}
                     >
-                      {col.label}
+                      {col.label}{col.sortable && sortKey === col.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                     </th>
                   ))}
                   {/* actions column */}
@@ -145,7 +172,7 @@ export default function InlineTable({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, rowIndex) => {
+                {sortedRows.map((row, rowIndex) => {
                   const isEditing = editingId === row.id
                   return (
                     <tr
