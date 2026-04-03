@@ -171,11 +171,14 @@ export default function InlineTable({
       if (!csvImport || !text) return
       const result = csvImport.parseFile(text)
       if (result.rows.length === 0) {
+        setPendingImport(null)
         setImportErrors(result.errors.length > 0 ? result.errors : ['Keine Einträge gefunden.'])
         return
       }
+      setImportErrors([])
       setPendingImport(result)
     }
+    reader.onerror = () => setImportErrors(['Fehler beim Lesen der Datei.'])
     reader.readAsText(file, 'UTF-8')
   }
 
@@ -200,7 +203,12 @@ export default function InlineTable({
     setIsDragOver(false)
     if (!csvImport) return
     const file = e.dataTransfer.files[0]
-    if (file) handleCsvFile(file)
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+      setImportErrors(['Bitte eine CSV-Datei auswählen.'])
+      return
+    }
+    handleCsvFile(file)
   }
 
   function handleKeyDown(e: React.KeyboardEvent, id: string, colIndex: number) {
