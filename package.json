@@ -19,7 +19,8 @@
   "overrides": {
     "vite-plugin-pwa": {
       "vite": "^8.0.0"
-    }
+    },
+    "serialize-javascript": "^7.0.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
