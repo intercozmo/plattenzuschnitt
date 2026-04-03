@@ -1,0 +1,22 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//CLAUDE//Plattenzuschnitt//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:officehours-20260407T130000Z@plattenzuschnitt
+DTSTAMP:20260403T120000Z
+DTSTART:20260407T130000Z
+DTEND:20260407T131500Z
+SUMMARY:Phase 0 / Phase 1 Office Hours: Align Phase 1 scope & MVP spec
+DESCRIPTION:15-minute check-in; CET/timezone aligned; attendees core team.
+END:VEVENT
+BEGIN:VEVENT
+UID:officehours-20260408T083000Z@plattenzuschnitt
+DTSTAMP:20260403T120000Z
+DTSTART:20260408T083000Z
+DTEND:20260408T084500Z
+SUMMARY:Phase 0 / Phase 1 Office Hours: Align Phase 1 scope & MVP spec
+DESCRIPTION:15-minute check-in; CET/timezone aligned; attendees core team.
+END:VEVENT
+END:VCALENDAR
