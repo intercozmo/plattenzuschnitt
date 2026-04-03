@@ -20,11 +20,15 @@ interface AppState {
   addStockPlate: (label: string, width: number, height: number, thickness: number, grain: Grain, quantity: number) => void;
   updateStockPlate: (id: string, updates: Partial<Omit<StockPlate, 'id'>>) => void;
   removeStockPlate: (id: string) => void;
+  replaceStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
+  appendStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
 
   // Piece actions
   addCutPiece: (name: string, width: number, height: number, thickness: number, quantity: number, grain: Grain) => void;
   updateCutPiece: (id: string, updates: Partial<Omit<CutPiece, 'id'>>) => void;
   removeCutPiece: (id: string) => void;
+  replaceCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
+  appendCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
 
   // Option actions
   setKerf: (kerf: number) => void;
@@ -55,6 +59,12 @@ export const useStore = create<AppState>()(
     removeStockPlate: (id) =>
       set(s => ({ stockPlates: s.stockPlates.filter(p => p.id !== id) })),
 
+    replaceStockPlates: (plates) =>
+      set(() => ({ stockPlates: plates.map(p => ({ id: nanoid(), ...p })) })),
+
+    appendStockPlates: (plates) =>
+      set(s => ({ stockPlates: [...s.stockPlates, ...plates.map(p => ({ id: nanoid(), ...p }))] })),
+
     addCutPiece: (name, width, height, thickness, quantity, grain) =>
       set(s => ({ cutPieces: [...s.cutPieces, { id: nanoid(), name, width, height, thickness, quantity, grain }] })),
 
@@ -63,6 +73,12 @@ export const useStore = create<AppState>()(
 
     removeCutPiece: (id) =>
       set(s => ({ cutPieces: s.cutPieces.filter(p => p.id !== id) })),
+
+    replaceCutPieces: (pieces) =>
+      set(() => ({ cutPieces: pieces.map(p => ({ id: nanoid(), ...p })) })),
+
+    appendCutPieces: (pieces) =>
+      set(s => ({ cutPieces: [...s.cutPieces, ...pieces.map(p => ({ id: nanoid(), ...p }))] })),
 
     setKerf: (kerf) => set({ kerf }),
 
