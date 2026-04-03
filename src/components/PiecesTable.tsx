@@ -14,6 +14,7 @@ const COLUMNS: Column[] = [
 ]
 
 export default function PiecesTable() {
+  const useInlineTableForPieces = useStore(s => s.useInlineTableForPieces)
   const cutPieces = useStore(s => s.cutPieces)
   const addCutPiece = useStore(s => s.addCutPiece)
   const updateCutPiece = useStore(s => s.updateCutPiece)
@@ -90,17 +91,49 @@ export default function PiecesTable() {
     },
   }
 
+  // Phase 1: render InlineTable behind feature flag; else render a lightweight fallback table
+  if (useInlineTableForPieces) {
+    return (
+      <InlineTable
+        columns={COLUMNS}
+        rows={rows}
+        onAdd={handleAdd}
+        onSave={handleSave}
+        onDelete={removeCutPiece}
+        addLabel="+ Stück hinzufügen"
+        onGrainToggle={handleGrainToggle}
+        csvExport={csvExport}
+        csvImport={csvImport}
+      />
+    )
+  }
+
+  // Lightweight fallback UI when feature flag is off
   return (
-    <InlineTable
-      columns={COLUMNS}
-      rows={rows}
-      onAdd={handleAdd}
-      onSave={handleSave}
-      onDelete={removeCutPiece}
-      addLabel="+ Stück hinzufügen"
-      onGrainToggle={handleGrainToggle}
-      csvExport={csvExport}
-      csvImport={csvImport}
-    />
+    <div className="rounded border border-slate-300 p-2">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-slate-100 border-b border-slate-300">
+            {COLUMNS.map(col => (
+              <th key={col.key} style={col.width ? { width: col.width } : undefined} className="text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300">
+                {col.label}
+              </th>
+            ))}
+            <th className="w-8 border border-slate-300 bg-slate-100" />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-b border-slate-200">
+              {COLUMNS.map(col => (
+                <td key={col.key} className="py-1 px-2 border border-slate-200">{String(r[col.key] ?? '')}</td>
+              ))}
+              <td className="py-1 px-1 text-right border border-slate-200" />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button type="button" onClick={handleAdd} className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">+ Stück hinzufügen</button>
+    </div>
   )
 }

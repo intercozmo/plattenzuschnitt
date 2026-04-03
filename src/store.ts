@@ -36,6 +36,10 @@ interface AppState {
   setPriority: (priority: OptimizationPriority) => void;
   setTrimLeft: (v: number) => void;
   setTrimTop: (v: number) => void;
+
+  // Phase flag: use InlineTable as the primary rendering for PiecesTable behind a feature flag
+  useInlineTableForPieces: boolean;
+  setUseInlineTableForPieces: (enabled: boolean) => void;
 }
 
 const persisted = loadState()
@@ -89,6 +93,10 @@ export const useStore = create<AppState>()(
     setTrimLeft: (trimLeft) => set({ trimLeft }),
 
     setTrimTop: (trimTop) => set({ trimTop }),
+
+    // Feature flag default: true (phase 1 uses InlineTable). Can be toggled to test migration path.
+    useInlineTableForPieces: true,
+    setUseInlineTableForPieces: (enabled: boolean) => set({ useInlineTableForPieces: enabled }),
   }))
 )
 
