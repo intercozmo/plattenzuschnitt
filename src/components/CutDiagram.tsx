@@ -78,11 +78,11 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
   const svgW = transposed ? plate.stock.height : plate.stock.width
   const svgH = transposed ? plate.stock.width : plate.stock.height
 
-  // Extra margin for dimension annotations (in SVG units)
-  const marginLeft = 110
-  const marginTop = 70
-  const vbW = svgW + marginLeft
-  const vbH = svgH + marginTop
+  // Extra margin for dimension annotations (bottom + right, in SVG units)
+  const marginBottom = 70
+  const marginRight = 110
+  const vbW = svgW + marginRight
+  const vbH = svgH + marginBottom
 
   const displayW = containerWidth || 400
   const displayH = (vbH / vbW) * displayW
@@ -150,7 +150,7 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
         <svg
           width={displayW}
           height={displayH}
-          viewBox={`-${marginLeft} -${marginTop} ${vbW} ${vbH}`}
+          viewBox={`0 0 ${vbW} ${vbH}`}
           style={{ transform: `scale(${scale})`, transformOrigin: 'top left', display: 'block' }}
         >
           <defs>
@@ -336,29 +336,54 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
               )}
             </g>
           )}
-          {/* L dimension annotation (top) */}
-          <g stroke="#64748b" strokeWidth={3} fill="none">
-            <line x1={0} y1={-marginTop + 20} x2={svgW} y2={-marginTop + 20} />
-            <line x1={0} y1={-marginTop + 8} x2={0} y2={-marginTop + 32} />
-            <line x1={svgW} y1={-marginTop + 8} x2={svgW} y2={-marginTop + 32} />
-          </g>
-          <text x={svgW / 2} y={-marginTop + 12} textAnchor="middle"
-            fontSize={38} fill="#334155" fontWeight="500">
-            L = {svgW} mm
-          </text>
+          {/* L dimension annotation (bottom) — text centered on line */}
+          {(() => {
+            const ly = svgH + 35
+            const labelText = `L ${svgW}`
+            const textW = labelText.length * 20
+            const gapStart = svgW / 2 - textW / 2
+            const gapEnd = svgW / 2 + textW / 2
+            return (
+              <g>
+                <g stroke="#000" strokeWidth={3} fill="none">
+                  <line x1={0} y1={ly} x2={gapStart - 5} y2={ly} />
+                  <line x1={gapEnd + 5} y1={ly} x2={svgW} y2={ly} />
+                  <line x1={0} y1={ly - 12} x2={0} y2={ly + 12} />
+                  <line x1={svgW} y1={ly - 12} x2={svgW} y2={ly + 12} />
+                </g>
+                <rect x={gapStart - 5} y={ly - 22} width={textW + 10} height={30} fill="white" />
+                <text x={svgW / 2} y={ly + 2} textAnchor="middle"
+                  fontSize={38} fill="#000" fontWeight="500">
+                  {labelText}
+                </text>
+              </g>
+            )
+          })()}
 
-          {/* B dimension annotation (left) */}
-          <g stroke="#64748b" strokeWidth={3} fill="none">
-            <line x1={-marginLeft + 25} y1={0} x2={-marginLeft + 25} y2={svgH} />
-            <line x1={-marginLeft + 12} y1={0} x2={-marginLeft + 38} y2={0} />
-            <line x1={-marginLeft + 12} y1={svgH} x2={-marginLeft + 38} y2={svgH} />
-          </g>
-          <text
-            x={-marginLeft + 15} y={svgH / 2}
-            textAnchor="middle" fontSize={38} fill="#334155" fontWeight="500"
-            transform={`rotate(-90, ${-marginLeft + 15}, ${svgH / 2})`}>
-            B = {svgH} mm
-          </text>
+          {/* B dimension annotation (right) — text centered on line, rotated -90° */}
+          {(() => {
+            const bx = svgW + 55
+            const labelText = `B ${svgH}`
+            const textW = labelText.length * 20
+            const gapStart = svgH / 2 - textW / 2
+            const gapEnd = svgH / 2 + textW / 2
+            return (
+              <g>
+                <g stroke="#000" strokeWidth={3} fill="none">
+                  <line x1={bx} y1={0} x2={bx} y2={gapStart - 5} />
+                  <line x1={bx} y1={gapEnd + 5} x2={bx} y2={svgH} />
+                  <line x1={bx - 12} y1={0} x2={bx + 12} y2={0} />
+                  <line x1={bx - 12} y1={svgH} x2={bx + 12} y2={svgH} />
+                </g>
+                <rect x={bx - 22} y={gapStart - 5} width={30} height={textW + 10} fill="white" />
+                <text x={bx} y={svgH / 2} textAnchor="middle" dominantBaseline="middle"
+                  fontSize={38} fill="#000" fontWeight="500"
+                  transform={`rotate(-90, ${bx}, ${svgH / 2})`}>
+                  {labelText}
+                </text>
+              </g>
+            )
+          })()}
         </svg>
       </div>
 
