@@ -266,4 +266,26 @@ describe('generateCutSequence', () => {
       }
     }
   })
+
+  it('generateCutSequence includes rest dimensions in pieceName', () => {
+    const stocks: StockPlate[] = [
+      { id: 's1', label: '', width: 1000, height: 500, thickness: 18, grain: 'any', quantity: 1 },
+    ]
+    const pieces: CutPiece[] = [
+      { id: 'p1', name: 'A', width: 300, height: 200, thickness: 18, quantity: 1, grain: 'any' },
+      { id: 'p2', name: 'B', width: 200, height: 150, thickness: 18, quantity: 1, grain: 'any' },
+    ]
+    const plan = computeCutPlan(stocks, pieces, 3)
+    expect(plan.plates.length).toBe(1)
+    expect(plan.plates[0].placements.length).toBe(2)
+    const steps = generateCutSequence(plan.plates[0])
+    expect(steps.length).toBeGreaterThan(0)
+    // At least one step should have a pieceName starting with "Rest"
+    const restSteps = steps.filter(s => s.pieceName?.startsWith('Rest'))
+    expect(restSteps.length).toBeGreaterThan(0)
+    // Rest label should contain dimensions in the format "Rest WxH mm"
+    for (const step of restSteps) {
+      expect(step.pieceName).toMatch(/^Rest \d+×\d+ mm$/)
+    }
+  })
 })

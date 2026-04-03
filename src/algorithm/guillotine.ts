@@ -391,19 +391,40 @@ function traverseCutTree(node: CutNode, stepCounter: { n: number }, steps: CutSt
     ? `Schnitt ${stepCounter.n}: Horizontal bei Y=${node.position}mm`
     : `Schnitt ${stepCounter.n}: Vertikal bei X=${node.position}mm`
 
+  const pieceName: string | undefined = node.piece?.piece.name ?? undefined
+
   steps.push({
     direction: node.direction,
     position: node.position,
     context: posLabel,
     panelWidth: node.panelWidth,
     panelHeight: node.panelHeight,
-    pieceName: node.piece?.piece.name ?? undefined,
+    pieceName,
   })
   stepCounter.n++
 
   if (node.children) {
     for (const child of node.children) {
       traverseCutTree(child, stepCounter, steps)
+    }
+  } else {
+    // Leaf node: the remaining area after this cut is pure waste — emit a rest step
+    const restW = node.direction === 'horizontal'
+      ? node.panelWidth
+      : node.panelWidth - node.position
+    const restH = node.direction === 'horizontal'
+      ? node.panelHeight - node.position
+      : node.panelHeight
+    if (restW > 0 && restH > 0) {
+      steps.push({
+        direction: node.direction,
+        position: node.position,
+        context: `Schnitt ${stepCounter.n}: Rest`,
+        panelWidth: node.panelWidth,
+        panelHeight: node.panelHeight,
+        pieceName: `Rest ${restW}×${restH} mm`,
+      })
+      stepCounter.n++
     }
   }
 }
