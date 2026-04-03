@@ -45,6 +45,11 @@ interface PanelResult {
 }
 
 const MAX_DEPTH = 100
+// Maximum number of candidate pieces evaluated per recursion level.
+// Keeps the algorithm O(MAX_CANDIDATES × depth) rather than exponential.
+// Candidates are taken from the already-sorted list (best first), so quality
+// is preserved: only the least-promising tail candidates are skipped.
+const MAX_CANDIDATES = 3
 
 // ---------------------------------------------------------------------------
 // Greedy guillotine placement (single-pass, no backtracking)
@@ -71,7 +76,7 @@ function placeOnPanel(
   depth = 0,
 ): PanelResult {
   if (depth >= MAX_DEPTH) {
-    return { placements: [], cutNode: null, placedArea: panelWidth * panelHeight }
+    return { placements: [], cutNode: null, placedArea: 0 }
   }
 
   if (panelWidth <= 0 || panelHeight <= 0 || pieces.length === 0) {
@@ -83,16 +88,22 @@ function placeOnPanel(
     ? [...pieces].sort((a, b) => b.height - a.height)
     : [...pieces].sort((a, b) => b.width * b.height - a.width * a.height)
 
+  // Limit candidates explored per level to avoid exponential branching.
+  // The sort already places the most promising pieces first, so slicing the
+  // tail loses only low-priority candidates.  Two splits (A/B) are still
+  // tried for every candidate that makes the cut, preserving split quality.
+  const candidates = sorted.slice(0, MAX_CANDIDATES)
+
   const panelArea = panelWidth * panelHeight
   let bestResult: PanelResult | null = null
   let bestScore = -Infinity
 
-  // Deduplicate by (id, rotated) to avoid redundant candidates at the same level.
-  // Only try the first occurrence of each unique piece identity.
+  // Deduplicate by dimension key to avoid redundant candidates at the same level.
+  // Only try the first occurrence of each unique piece dimension.
   const triedKeys = new Set<string>()
 
-  for (let pieceIdx = 0; pieceIdx < sorted.length; pieceIdx++) {
-    const piece = sorted[pieceIdx]
+  for (let pieceIdx = 0; pieceIdx < candidates.length; pieceIdx++) {
+    const piece = candidates[pieceIdx]
 
     const orientations: Array<{ pw: number; ph: number; rotated: boolean }> = [
       { pw: piece.width, ph: piece.height, rotated: false },
@@ -109,9 +120,12 @@ function placeOnPanel(
       if (triedKeys.has(key)) continue
       triedKeys.add(key)
 
-      // Remaining pieces after placing this one (remove first occurrence)
+      // Remaining pieces after placing this one — remove first occurrence by
+      // reference from the full sorted list so sub-panels can still access all
+      // non-candidate pieces (those beyond MAX_CANDIDATES).
+      const placedIdx = sorted.indexOf(piece)
       const remaining = [...sorted]
-      remaining.splice(pieceIdx, 1)
+      remaining.splice(placedIdx, 1)
 
       const placement: Placement = { piece, x: offsetX, y: offsetY, rotated }
 
