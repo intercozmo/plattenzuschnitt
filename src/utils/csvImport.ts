@@ -108,3 +108,32 @@ export function parseCsv(text: string): CsvImportResult {
 
   return { pieces, errors }
 }
+
+export interface CsvStock {
+  label: string
+  width: number
+  height: number
+  thickness: number
+  quantity: number
+  grain: 'any' | 'horizontal' | 'vertical'
+}
+
+export interface CsvStockResult {
+  plates: CsvStock[]
+  errors: string[]
+}
+
+export function parseStockCsv(text: string): CsvStockResult {
+  const result = parseCsv(text)
+  return {
+    plates: result.pieces.map(p => ({
+      label: p.name,
+      width: p.width,
+      height: p.height,
+      thickness: p.thickness,
+      quantity: p.quantity,
+      grain: p.grain,
+    })),
+    errors: result.errors,
+  }
+}
