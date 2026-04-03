@@ -1,4 +1,5 @@
 // src/components/CutList.tsx
+import { Fragment } from 'react'
 import type { PlacedPlate } from '../types'
 import { generateCutSequence } from '../algorithm/guillotine'
 
@@ -44,8 +45,8 @@ export default function CutList({ plates }: Props) {
         </thead>
         <tbody>
           {plateSteps.map(({ plate, plateNumber, steps }) => (
-            <>
-              <tr key={`sep-${plateNumber}`} className="bg-slate-50">
+            <Fragment key={`plate-${plateNumber}`}>
+              <tr className="bg-slate-50">
                 <td colSpan={4} className="py-1 px-2 text-slate-500 font-medium text-xs">
                   Platte {plateNumber}: {plate.stock.width}×{plate.stock.height} mm
                   {plate.stock.label ? ` — ${plate.stock.label}` : ''}
@@ -79,7 +80,7 @@ export default function CutList({ plates }: Props) {
                   </tr>
                 )
               })}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
