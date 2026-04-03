@@ -1,5 +1,5 @@
 // src/components/InlineTable.tsx
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useId } from 'react'
 
 export interface Column {
   key: string
@@ -20,6 +20,12 @@ export interface CsvExportConfig {
   grainExport?: (g: string) => string
 }
 
+export interface CsvImportConfig {
+  onReplace: (rows: Record<string, unknown>[]) => void
+  onAppend: (rows: Record<string, unknown>[]) => void
+  parseFile: (text: string) => { rows: Record<string, unknown>[]; errors: string[] }
+}
+
 interface Props {
   columns: Column[]
   rows: Row[]
@@ -29,6 +35,7 @@ interface Props {
   addLabel?: string
   onGrainToggle?: (id: string, currentGrain: string) => void
   csvExport?: CsvExportConfig
+  csvImport?: CsvImportConfig
 }
 
 function grainLabel(grain: string): string {
@@ -52,10 +59,16 @@ export default function InlineTable({
   addLabel = '+ Hinzufügen',
   onGrainToggle,
   csvExport,
+  csvImport,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
   const firstInputRef = useRef<HTMLInputElement>(null)
+
+  const fileInputId = useId()
+  const [importErrors, setImportErrors] = useState<string[]>([])
+  const [pendingImport, setPendingImport] = useState<{ rows: Record<string, unknown>[]; errors: string[] } | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -151,6 +164,45 @@ export default function InlineTable({
     URL.revokeObjectURL(url)
   }
 
+  function handleCsvFile(file: File) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const text = e.target?.result as string
+      if (!csvImport || !text) return
+      const result = csvImport.parseFile(text)
+      if (result.rows.length === 0) {
+        setImportErrors(result.errors.length > 0 ? result.errors : ['Keine Einträge gefunden.'])
+        return
+      }
+      setPendingImport(result)
+    }
+    reader.readAsText(file, 'UTF-8')
+  }
+
+  function handleCsvImportChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleCsvFile(file)
+    e.target.value = ''
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    if (!csvImport) return
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  function handleDragLeave() {
+    setIsDragOver(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragOver(false)
+    if (!csvImport) return
+    const file = e.dataTransfer.files[0]
+    if (file) handleCsvFile(file)
+  }
+
   function handleKeyDown(e: React.KeyboardEvent, id: string, colIndex: number) {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -186,7 +238,12 @@ export default function InlineTable({
   }
 
   return (
-    <div className="w-full">
+    <div
+      className={`w-full${isDragOver ? ' ring-2 ring-blue-400 rounded' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {rows.length === 0 ? (
         <p className="text-slate-400 text-sm py-2 text-center">Keine Einträge vorhanden.</p>
       ) : (
@@ -325,6 +382,73 @@ export default function InlineTable({
         >
           CSV exportieren
         </button>
+      )}
+      {csvImport && (
+        <>
+          <label
+            htmlFor={fileInputId}
+            className="mt-2 ml-3 text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2 cursor-pointer"
+          >
+            CSV importieren
+          </label>
+          <input
+            id={fileInputId}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCsvImportChange}
+          />
+        </>
+      )}
+      {importErrors.length > 0 && (
+        <div className="mt-2 text-sm text-red-600">
+          {importErrors.map((err, i) => <div key={i}>{err}</div>)}
+          <button
+            type="button"
+            onClick={() => setImportErrors([])}
+            className="mt-1 text-xs text-slate-500 hover:text-slate-700 underline"
+          >
+            Schließen
+          </button>
+        </div>
+      )}
+      {pendingImport && (
+        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+          <div className="text-slate-700 mb-2">
+            {pendingImport.rows.length} Eintrag{pendingImport.rows.length !== 1 ? 'e' : ''} erkannt.
+            {pendingImport.errors.length > 0 && (
+              <span className="text-amber-600 ml-2">{pendingImport.errors.length} Warnung{pendingImport.errors.length !== 1 ? 'en' : ''}.</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { csvImport?.onReplace(pendingImport.rows); setPendingImport(null) }}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+            >
+              Ersetzen
+            </button>
+            <button
+              type="button"
+              onClick={() => { csvImport?.onAppend(pendingImport.rows); setPendingImport(null) }}
+              className="px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded text-xs hover:bg-slate-50"
+            >
+              Hinzufügen
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingImport(null)}
+              className="px-3 py-1 text-slate-500 text-xs hover:text-slate-700"
+            >
+              Abbrechen
+            </button>
+          </div>
+          {pendingImport.errors.length > 0 && (
+            <div className="mt-2 text-xs text-amber-600">
+              {pendingImport.errors.map((err, i) => <div key={i}>{err}</div>)}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
