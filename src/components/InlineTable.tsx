@@ -15,6 +15,11 @@ export interface Row {
   [key: string]: unknown
 }
 
+export interface CsvExportConfig {
+  filename: string
+  grainExport?: (g: string) => string
+}
+
 interface Props {
   columns: Column[]
   rows: Row[]
@@ -23,6 +28,7 @@ interface Props {
   onAdd: () => void
   addLabel?: string
   onGrainToggle?: (id: string, currentGrain: string) => void
+  csvExport?: CsvExportConfig
 }
 
 function grainLabel(grain: string): string {
@@ -45,6 +51,7 @@ export default function InlineTable({
   onAdd,
   addLabel = '+ Hinzufügen',
   onGrainToggle,
+  csvExport,
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
@@ -121,6 +128,27 @@ export default function InlineTable({
   function cancelEdit() {
     setEditingId(null)
     setEditValues({})
+  }
+
+  function handleCsvExport() {
+    if (!csvExport) return
+    const grainFn = csvExport.grainExport ?? ((g: string) => g)
+    const header = columns.map(c => c.csvLabel ?? c.label).join(';')
+    const dataRows = rows.map(row =>
+      columns.map(col => {
+        const val = row[col.key]
+        if (col.type === 'grain') return grainFn(String(val ?? ''))
+        return String(val ?? '')
+      }).join(';')
+    )
+    const csv = [header, ...dataRows].join('\r\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = csvExport.filename
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function handleKeyDown(e: React.KeyboardEvent, id: string, colIndex: number) {
@@ -289,6 +317,15 @@ export default function InlineTable({
       >
         {addLabel}
       </button>
+      {csvExport && rows.length > 0 && (
+        <button
+          type="button"
+          onClick={handleCsvExport}
+          className="mt-2 ml-3 text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2"
+        >
+          CSV exportieren
+        </button>
+      )}
     </div>
   )
 }
