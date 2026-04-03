@@ -16,6 +16,6 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Date:** 2026-04-03
 - **Error patterns:** hangs, freeze, UI freeze, 40 pieces, exponential, placeOnPanel, MAX_DEPTH, placedArea, guillotine
 - **Root cause:** (1) placeOnPanel iterated ALL unique piece dimensions per level, each spawning 2 full recursive sub-trees — O(candidates^depth) complexity. (2) MAX_DEPTH early-return set placedArea=panelWidth*panelHeight despite placing zero pieces, inflating scores and corrupting best-path selection.
-- **Fix:** (1) Add MAX_CANDIDATES=3 constant; slice sorted array to candidates before the outer loop; use sorted.indexOf(piece) to build remaining so non-candidate pieces still reach sub-panels. (2) Change placedArea in MAX_DEPTH branch from panelWidth*panelHeight to 0.
+- **Fix:** (1) Make algorithm truly greedy: pick only the first fitting piece from sorted order instead of trying all candidates. Compare both split strategies (horizontal-first vs vertical-first) only at shallow depths (< SPLIT_COMPARE_DEPTH=3); at deeper levels, heuristically pick the split that creates the larger remaining sub-panel. (2) Change placedArea in MAX_DEPTH branch from panelWidth*panelHeight to 0. Result: 130 pieces computes in ~30ms (was 30s+ for 40 pieces).
 - **Files changed:** src/algorithm/guillotine.ts
 ---

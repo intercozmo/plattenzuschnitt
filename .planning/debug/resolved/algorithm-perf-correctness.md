@@ -50,13 +50,13 @@ root_cause: |
   Bug 2 (CORRECTNESS): MAX_DEPTH early return sets placedArea=panelWidth*panelHeight despite placing zero pieces. Score inflation causes the algorithm to prefer dead-end paths.
 
 fix: |
-  Bug 1: After sorting, take only the first MAX_CANDIDATES=3 entries from the sorted list before the outer loop. The deduplication by dimension key already prevents duplicates; the new cap ensures at most 3 candidates are explored per level regardless of how many unique dimensions exist.
+  Bug 1: Made algorithm truly greedy — pick only the FIRST fitting piece from sorted order (not all candidates). Compare both split strategies (horizontal-first vs vertical-first) only at shallow depths (< SPLIT_COMPARE_DEPTH=3); at deeper levels, heuristically pick the split creating the larger remaining sub-panel. This reduces branching from exponential to linear in piece count.
+  Note: An intermediate fix (MAX_CANDIDATES=3) was insufficient — 3 candidates × 2 splits still yielded 4^depth calls.
   Bug 2: Change `placedArea: panelWidth * panelHeight` to `placedArea: 0` in the MAX_DEPTH early-return branch.
 
 verification: |
   18/18 existing tests pass. Performance benchmark:
-  - 132 pieces (4 types x qty 33): 1503ms, all placed, 6.8% waste
-  - 200 pieces (4 types x qty 50): 1204ms, all placed, 5.9% waste
-  Both well under the 2-second target for the 130+ piece requirement.
+  - 130 pieces (4 types, qty 20-50): ~30ms, all placed, 21.5% waste
+  - App renders correctly on desktop and mobile, zero console errors
 files_changed:
   - src/algorithm/guillotine.ts
