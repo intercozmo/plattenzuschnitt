@@ -136,6 +136,7 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
 
   // Stripe pattern for trim strips
   const stripePatternId = `trim-stripe-${plate.stock.id}-${plate.plateIndex}`
+  const wastePatternId = `waste-hatch-${plate.stock.id}-${plate.plateIndex}`
 
   return (
     <div className="relative">
@@ -156,6 +157,9 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
             <pattern id={stripePatternId} patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
               <line x1="0" y1="0" x2="0" y2="40" stroke="#f59e0b" strokeWidth="12" strokeOpacity="0.4" />
             </pattern>
+            <pattern id={wastePatternId} patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="40" stroke="#e11d48" strokeWidth="6" strokeOpacity="0.35" />
+            </pattern>
           </defs>
 
           {/* Plate background */}
@@ -166,15 +170,15 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
             const { x, y, w, h } = toDisplayRect(wr.x, wr.y, wr.width, wr.height, transposed)
             return (
               <g key={`waste-${i}`}>
-                <rect
-                  x={x} y={y}
-                  width={w} height={h}
-                  fill="#fce7f3"
-                  stroke="#f9a8d4"
-                  strokeWidth={3}
-                  strokeDasharray="20 8"
-                  fillOpacity={0.85}
-                />
+                {/* Layer 1: Rosa background */}
+                <rect x={x} y={y} width={w} height={h}
+                  fill="#fce7f3" fillOpacity={0.6} />
+                {/* Layer 2: Diagonal hatching */}
+                <rect x={x} y={y} width={w} height={h}
+                  fill={`url(#${wastePatternId})`} />
+                {/* Layer 3: Dashed border */}
+                <rect x={x} y={y} width={w} height={h}
+                  fill="none" stroke="#f9a8d4" strokeWidth={3} strokeDasharray="20 8" />
                 {w > 100 && h > 60 && (
                   <>
                     <text x={x + w / 2} y={y + h / 2 - 20}
