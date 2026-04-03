@@ -1,15 +1,16 @@
 // src/components/StockTable.tsx
-import InlineTable, { type Column, type Row } from './InlineTable'
+import InlineTable, { type Column, type Row, type CsvExportConfig, type CsvImportConfig } from './InlineTable'
 import { useStore } from '../store'
 import type { StockPlate } from '../types'
+import { parseStockCsv } from '../utils/csvImport'
 
 const COLUMNS: Column[] = [
   { key: 'label',     label: 'Bezeichnung', type: 'text' },
-  { key: 'height',    label: 'L',    type: 'number', width: '52px' },
-  { key: 'width',     label: 'B',    type: 'number', width: '52px' },
+  { key: 'height',    label: 'L',    type: 'number', width: '52px', sortable: true },
+  { key: 'width',     label: 'B',    type: 'number', width: '52px', sortable: true },
   { key: 'thickness', label: 'D',    type: 'number', width: '40px' },
-  { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px' },
-  { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px' },
+  { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px', csvLabel: 'Maserung' },
+  { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px', sortable: true, csvLabel: 'Anzahl' },
 ]
 
 export default function StockTable() {
@@ -17,6 +18,8 @@ export default function StockTable() {
   const addStockPlate = useStore(s => s.addStockPlate)
   const updateStockPlate = useStore(s => s.updateStockPlate)
   const removeStockPlate = useStore(s => s.removeStockPlate)
+  const replaceStockPlates = useStore(s => s.replaceStockPlates)
+  const appendStockPlates = useStore(s => s.appendStockPlates)
 
   const rows: Row[] = stockPlates.map(p => ({
     id: p.id,
@@ -55,6 +58,45 @@ export default function StockTable() {
     updateStockPlate(id, { grain: next as StockPlate['grain'] })
   }
 
+  const csvExport: CsvExportConfig = {
+    filename: 'plattenbestand.csv',
+    grainExport: (g: string) => {
+      if (g === 'horizontal') return 'Längs'
+      if (g === 'vertical') return 'Quer'
+      return ''
+    },
+  }
+
+  const csvImport: CsvImportConfig = {
+    parseFile: (text: string) => {
+      const result = parseStockCsv(text)
+      return {
+        rows: result.plates.map(p => ({ ...p })),
+        errors: result.errors,
+      }
+    },
+    onReplace: (importedRows) => {
+      replaceStockPlates(importedRows.map(r => ({
+        label: String(r['label'] ?? ''),
+        width: Number(r['width']),
+        height: Number(r['height']),
+        thickness: Number(r['thickness']),
+        grain: (r['grain'] as StockPlate['grain']) ?? 'any',
+        quantity: Number(r['quantity']),
+      })))
+    },
+    onAppend: (importedRows) => {
+      appendStockPlates(importedRows.map(r => ({
+        label: String(r['label'] ?? ''),
+        width: Number(r['width']),
+        height: Number(r['height']),
+        thickness: Number(r['thickness']),
+        grain: (r['grain'] as StockPlate['grain']) ?? 'any',
+        quantity: Number(r['quantity']),
+      })))
+    },
+  }
+
   return (
     <InlineTable
       columns={COLUMNS}
@@ -64,6 +106,8 @@ export default function StockTable() {
       onDelete={handleDelete}
       addLabel="+ Platte hinzufügen"
       onGrainToggle={handleGrainToggle}
+      csvExport={csvExport}
+      csvImport={csvImport}
     />
   )
 }

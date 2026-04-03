@@ -20,6 +20,8 @@ interface AppState {
   addStockPlate: (label: string, width: number, height: number, thickness: number, grain: Grain, quantity: number) => void;
   updateStockPlate: (id: string, updates: Partial<Omit<StockPlate, 'id'>>) => void;
   removeStockPlate: (id: string) => void;
+  replaceStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
+  appendStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
 
   // Piece actions
   addCutPiece: (name: string, width: number, height: number, thickness: number, quantity: number, grain: Grain) => void;
@@ -54,6 +56,12 @@ export const useStore = create<AppState>()(
 
     removeStockPlate: (id) =>
       set(s => ({ stockPlates: s.stockPlates.filter(p => p.id !== id) })),
+
+    replaceStockPlates: (plates) =>
+      set(() => ({ stockPlates: plates.map(p => ({ id: nanoid(), ...p })) })),
+
+    appendStockPlates: (plates) =>
+      set(s => ({ stockPlates: [...s.stockPlates, ...plates.map(p => ({ id: nanoid(), ...p }))] })),
 
     addCutPiece: (name, width, height, thickness, quantity, grain) =>
       set(s => ({ cutPieces: [...s.cutPieces, { id: nanoid(), name, width, height, thickness, quantity, grain }] })),
