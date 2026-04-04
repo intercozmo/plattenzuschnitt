@@ -47,6 +47,8 @@ export interface CutStep {
   panelWidth?: number;   // width of the panel being cut
   panelHeight?: number;  // height of the panel being cut
   pieceName?: string;    // name of the piece placed by this cut (if any)
+  pieceX?: number;       // algorithm-space x of placed piece
+  pieceY?: number;       // algorithm-space y of placed piece
 }
 
 export interface CutPlan {

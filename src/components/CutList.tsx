@@ -1,13 +1,23 @@
 // src/components/CutList.tsx
-import { Fragment } from 'react'
+import { Fragment, useRef, useEffect } from 'react'
 import type { PlacedPlate } from '../types'
+import type { PieceHighlight } from '../App'
 import { generateCutSequence } from '../algorithm/guillotine'
 
 interface Props {
   plates: PlacedPlate[]
+  highlight?: PieceHighlight | null
+  onHighlight?: (h: PieceHighlight | null) => void
 }
 
-export default function CutList({ plates }: Props) {
+export default function CutList({ plates, highlight, onHighlight }: Props) {
+  const highlightRef = useRef<HTMLTableRowElement>(null)
+
+  useEffect(() => {
+    if (highlight && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [highlight])
   // Build per-plate steps with a global counter
   const plateSteps: Array<{
     plate: PlacedPlate
@@ -58,8 +68,18 @@ export default function CutList({ plates }: Props) {
                   step.panelWidth != null && step.panelHeight != null
                     ? `${step.panelWidth}×${step.panelHeight} mm`
                     : `${plate.stock.width}×${plate.stock.height} mm`
+                const pieceName = step.pieceName
+                const isRest = pieceName?.startsWith('Rest ')
+                const hasPlacement = !isRest && step.pieceX != null && step.pieceY != null
+                const isHighlighted = hasPlacement && highlight?.plateNumber === plateNumber && highlight?.pieceX === step.pieceX && highlight?.pieceY === step.pieceY
                 return (
-                  <tr key={`step-${stepNum}`} className="border-b border-slate-50">
+                  <tr
+                    key={`step-${stepNum}`}
+                    ref={isHighlighted ? highlightRef : undefined}
+                    className={`border-b border-slate-50 ${isHighlighted ? 'bg-blue-100' : ''} ${hasPlacement ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                    onMouseEnter={hasPlacement ? () => onHighlight?.({ plateNumber, pieceX: step.pieceX!, pieceY: step.pieceY! }) : undefined}
+                    onMouseLeave={hasPlacement ? () => onHighlight?.(null) : undefined}
+                  >
                     <td className="py-1 px-2 text-slate-400">{stepNum}</td>
                     <td className="py-1 px-2 text-slate-600">{panelDims}</td>
                     <td className="py-1 px-2">
@@ -76,7 +96,7 @@ export default function CutList({ plates }: Props) {
                         mm
                       </span>
                     </td>
-                    <td className="py-1 px-2 text-slate-600">{step.pieceName ?? '—'}</td>
+                    <td className="py-1 px-2 text-slate-600">{pieceName ?? '—'}</td>
                   </tr>
                 )
               })}

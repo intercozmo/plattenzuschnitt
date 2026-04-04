@@ -1,6 +1,5 @@
 // src/components/SheetStats.tsx
 import type { PlacedPlate } from '../types'
-import CollapsibleSection from './CollapsibleSection'
 
 interface Props {
   plate: PlacedPlate
@@ -8,23 +7,16 @@ interface Props {
 }
 
 export default function SheetStats({ plate, plateNumber }: Props) {
-  const title = `Platte ${plateNumber} — ${plate.stock.width}×${plate.stock.height} mm`
-
   return (
-    <CollapsibleSection title={title} defaultOpen={false}>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        {plate.stock.label && (
-          <>
-            <dt className="text-slate-500">Bezeichnung</dt>
-            <dd className="text-slate-700 font-medium text-right">{plate.stock.label}</dd>
-          </>
-        )}
-        <dt className="text-slate-500">Teile</dt>
-        <dd className="text-slate-700 font-medium text-right">{plate.placements.length}</dd>
-
-        <dt className="text-slate-500">Verschnitt</dt>
-        <dd className="text-slate-700 font-medium text-right">{plate.wastePct.toFixed(1)} %</dd>
-      </dl>
-    </CollapsibleSection>
+    <div className="border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
+      <div className="text-xs font-medium text-slate-600 mb-1">
+        Platte {plateNumber}: {plate.stock.width}×{plate.stock.height} mm
+        {plate.stock.label ? ` — ${plate.stock.label}` : ''}
+      </div>
+      <div className="flex gap-4 text-xs text-slate-500">
+        <span>{plate.placements.length} Teile</span>
+        <span>Verschnitt {plate.wastePct.toFixed(1)}%</span>
+      </div>
+    </div>
   )
 }

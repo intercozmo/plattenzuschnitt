@@ -417,6 +417,8 @@ function traverseCutTree(node: CutNode, stepCounter: { n: number }, steps: CutSt
     panelWidth: node.panelWidth,
     panelHeight: node.panelHeight,
     pieceName,
+    pieceX: node.piece?.x,
+    pieceY: node.piece?.y,
   })
   stepCounter.n++
 
