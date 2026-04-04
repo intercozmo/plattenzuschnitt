@@ -3,6 +3,7 @@ import { useState, useRef, useMemo } from 'react'
 import { COLOR_PALETTE } from '../constants'
 import CutDiagram from './CutDiagram'
 import type { CutPlan, PlacedPlate } from '../types'
+import type { PieceHighlight } from '../App'
 
 interface Props {
   plan: CutPlan
@@ -10,6 +11,8 @@ interface Props {
   trimLeft: number
   trimTop: number
   onBack?: () => void
+  highlight?: PieceHighlight | null
+  onHighlight?: (h: PieceHighlight | null) => void
 }
 
 function plateKey(plate: PlacedPlate): string {
@@ -45,7 +48,7 @@ async function exportPlateAsJpg(svgElement: SVGElement, filename: string) {
   }, 'image/jpeg', 0.92)
 }
 
-export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack }: Props) {
+export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, highlight, onHighlight }: Props) {
   // Build color map from all placements across all plates
   const pieceColorMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -211,10 +214,13 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack }: 
               >
                 <CutDiagram
                   plate={plate}
+                  plateNumber={idx + 1}
                   pieceColorMap={pieceColorMap}
                   kerf={kerf}
                   trimLeft={trimLeft}
                   trimTop={trimTop}
+                  highlight={highlight}
+                  onHighlight={onHighlight}
                 />
               </div>
             </div>

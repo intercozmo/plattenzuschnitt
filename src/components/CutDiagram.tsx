@@ -1,14 +1,18 @@
 // src/components/CutDiagram.tsx
 import { useRef, useState } from 'react'
 import type { PlacedPlate, CutPiece } from '../types'
+import type { PieceHighlight } from '../App'
 import { useResizeObserver } from '../hooks/useResizeObserver'
 
 interface Props {
   plate: PlacedPlate
+  plateNumber: number
   pieceColorMap: Map<string, string>
   kerf: number
   trimLeft: number
   trimTop: number
+  highlight?: PieceHighlight | null
+  onHighlight?: (h: PieceHighlight | null) => void
 }
 
 interface TooltipState {
@@ -66,7 +70,7 @@ function toDisplayRect(
   return { x: ax, y: ay, w: aw, h: ah }
 }
 
-export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimTop }: Props) {
+export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, trimLeft, trimTop, highlight, onHighlight }: Props) {
   const [scale, setScale] = useState(1)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const lastDist = useRef(0)
@@ -79,7 +83,7 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
   const svgH = transposed ? plate.stock.width : plate.stock.height
 
   // Extra margin for dimension annotations (bottom + right, in SVG units)
-  const marginBottom = 70
+  const marginBottom = 110
   const marginRight = 110
   const vbW = svgW + marginRight
   const vbH = svgH + marginBottom
@@ -200,44 +204,63 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
             const { x: dx, y: dy, w: dw, h: dh } = toDisplayRect(p.x, p.y, pw_algo, ph_algo, transposed)
             const color = pieceColorMap.get(p.piece.id) ?? '#94a3b8'
             const labelFits = dh >= 30
-            const large = dw > 150 && dh > 80
+            const large = Math.min(dw, dh) > 80 && Math.max(dw, dh) > 150
+            const isHighlighted = highlight?.plateNumber === plateNumber && highlight?.pieceX === p.x && highlight?.pieceY === p.y
             return (
-              <g key={i} onClick={e => { e.stopPropagation(); setTooltip({ piece: p.piece }) }}
+              <g key={i}
+                onClick={e => { e.stopPropagation(); setTooltip({ piece: p.piece }); onHighlight?.({ plateNumber, pieceX: p.x, pieceY: p.y }) }}
+                onMouseEnter={() => onHighlight?.({ plateNumber, pieceX: p.x, pieceY: p.y })}
+                onMouseLeave={() => onHighlight?.(null)}
                 style={{ cursor: 'pointer' }}>
                 <rect x={dx} y={dy} width={dw} height={dh}
-                  fill={color} fillOpacity={0.8} stroke="#1e293b" strokeWidth={4} />
-                {labelFits && large && (
-                  <>
-                    <text x={dx + dw / 2} y={dy + dh / 2 - 30}
-                      textAnchor="middle" fontSize={50} fontWeight="600" fill="#1e293b">
+                  fill={color} fillOpacity={isHighlighted ? 1 : 0.8} stroke={isHighlighted ? '#2563eb' : '#1e293b'} strokeWidth={isHighlighted ? 8 : 4} />
+                {labelFits && large && (() => {
+                  const cx = dx + dw / 2
+                  const cy = dy + dh / 2
+                  const tall = dh > dw
+                  const rot = tall ? `rotate(-90, ${cx}, ${cy})` : undefined
+                  return (
+                    <>
+                      <text x={cx} y={cy - 30}
+                        textAnchor="middle" fontSize={50} fontWeight="600" fill="#1e293b"
+                        transform={rot}>
+                        {p.piece.name}
+                      </text>
+                      <text x={cx} y={cy + 30}
+                        textAnchor="middle" fontSize={40} fill="#334155"
+                        transform={rot}>
+                        {dw}×{dh}
+                      </text>
+                      {dw > 80 && (
+                        <text x={cx} y={dy + dh - 10}
+                          textAnchor="middle" fontSize={28} fill="#1e293b">
+                          {dw} mm
+                        </text>
+                      )}
+                      {dh > 80 && (
+                        <text
+                          x={dx + dw - 10} y={cy}
+                          textAnchor="middle" fontSize={28} fill="#1e293b"
+                          transform={`rotate(-90, ${dx + dw - 10}, ${cy})`}>
+                          {dh} mm
+                        </text>
+                      )}
+                    </>
+                  )
+                })()}
+                {labelFits && !large && (() => {
+                  const cx = dx + dw / 2
+                  const cy = dy + dh / 2
+                  const tall = dh > dw
+                  const rot = tall ? `rotate(-90, ${cx}, ${cy})` : undefined
+                  return (
+                    <text x={cx} y={cy}
+                      textAnchor="middle" dominantBaseline="middle" fontSize={36} fontWeight="600" fill="#1e293b"
+                      transform={rot}>
                       {p.piece.name}
                     </text>
-                    <text x={dx + dw / 2} y={dy + dh / 2 + 30}
-                      textAnchor="middle" fontSize={40} fill="#334155">
-                      {dw}×{dh}
-                    </text>
-                    {dw > 80 && (
-                      <text x={dx + dw / 2} y={dy + 28}
-                        textAnchor="middle" fontSize={28} fill="#1e293b">
-                        {dw} mm
-                      </text>
-                    )}
-                    {dh > 80 && (
-                      <text
-                        x={dx + 28} y={dy + dh / 2}
-                        textAnchor="middle" fontSize={28} fill="#1e293b"
-                        transform={`rotate(-90, ${dx + 28}, ${dy + dh / 2})`}>
-                        {dh} mm
-                      </text>
-                    )}
-                  </>
-                )}
-                {labelFits && !large && (
-                  <text x={dx + dw / 2} y={dy + dh / 2}
-                    textAnchor="middle" dominantBaseline="middle" fontSize={36} fontWeight="600" fill="#1e293b">
-                    {p.piece.name}
-                  </text>
-                )}
+                  )
+                })()}
               </g>
             )
           })}
@@ -338,7 +361,7 @@ export default function CutDiagram({ plate, pieceColorMap, kerf, trimLeft, trimT
           )}
           {/* L dimension annotation (bottom) — text centered on line */}
           {(() => {
-            const ly = svgH + 35
+            const ly = svgH + 55
             const labelText = `L ${svgW}`
             const textW = labelText.length * 20
             const gapStart = svgW / 2 - textW / 2

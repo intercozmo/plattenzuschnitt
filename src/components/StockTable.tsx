@@ -5,7 +5,7 @@ import type { StockPlate } from '../types'
 import { parseStockCsv } from '../utils/csvImport'
 
 const COLUMNS: Column[] = [
-  { key: 'label',     label: 'Bezeichnung', type: 'text' },
+  { key: 'label',     label: 'Bezeichnung', type: 'text', sortable: true },
   { key: 'height',    label: 'L',    type: 'number', width: '52px', sortable: true },
   { key: 'width',     label: 'B',    type: 'number', width: '52px', sortable: true },
   { key: 'thickness', label: 'D',    type: 'number', width: '40px' },

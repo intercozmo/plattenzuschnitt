@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useStore } from './store'
 import { computeCutPlan } from './algorithm/guillotine'
 import { MAX_TOTAL_PIECES } from './constants'
@@ -10,6 +10,12 @@ import DiagramPanel from './components/DiagramPanel'
 import ResultsPanel from './components/ResultsPanel'
 import MobileTabBar from './components/MobileTabBar'
 import type { CutPlan } from './types'
+
+export interface PieceHighlight {
+  plateNumber: number   // 1-based plate number
+  pieceX: number        // algorithm-space x of placement
+  pieceY: number        // algorithm-space y of placement
+}
 
 type Tab = 'eingabe' | 'diagramm' | 'ergebnis'
 
@@ -36,6 +42,8 @@ function EmptyResultsState() {
 export default function App() {
   const [plan, setPlan] = useState<CutPlan | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('eingabe')
+  const [highlight, setHighlight] = useState<PieceHighlight | null>(null)
+  const onHighlight = useCallback((h: PieceHighlight | null) => setHighlight(h), [])
 
   const { cutPieces, stockPlates, kerf, trimLeft, trimTop } = useStore()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -58,15 +66,15 @@ export default function App() {
     return (
       <div className="h-screen overflow-hidden flex flex-col">
         <Header onCompute={handleCompute} canCompute={canCompute} />
-        <div className="grid grid-cols-[420px_1fr_300px] h-[calc(100vh-52px)] overflow-hidden">
+        <div className="grid grid-cols-[420px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
             <InputPanel />
           </aside>
           <main className="overflow-y-auto bg-slate-50">
-            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} /> : <EmptyDiagramState />}
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} highlight={highlight} onHighlight={onHighlight} /> : <EmptyDiagramState />}
           </main>
           <aside className="overflow-y-auto border-l border-slate-200 bg-white">
-            {plan ? <ResultsPanel plan={plan} kerf={kerf} /> : <EmptyResultsState />}
+            {plan ? <ResultsPanel plan={plan} kerf={kerf} highlight={highlight} onHighlight={onHighlight} /> : <EmptyResultsState />}
           </aside>
         </div>
       </div>
@@ -84,12 +92,12 @@ export default function App() {
         )}
         {activeTab === 'diagramm' && (
           <div className="h-full overflow-y-auto bg-slate-50">
-            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} /> : <EmptyDiagramState />}
+            {plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} highlight={highlight} onHighlight={onHighlight} /> : <EmptyDiagramState />}
           </div>
         )}
         {activeTab === 'ergebnis' && (
           <div className="h-full overflow-y-auto bg-white">
-            {plan ? <ResultsPanel plan={plan} kerf={kerf} /> : <EmptyResultsState />}
+            {plan ? <ResultsPanel plan={plan} kerf={kerf} highlight={highlight} onHighlight={onHighlight} /> : <EmptyResultsState />}
           </div>
         )}
       </div>
