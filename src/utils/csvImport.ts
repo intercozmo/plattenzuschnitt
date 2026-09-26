@@ -16,6 +16,8 @@ export interface CsvImportResult {
 
 function detectSeparator(text: string): string {
   const firstLine = text.split('\n')[0] ?? ''
+  // Tab-separated = pasted from Excel / Google Sheets
+  if (firstLine.includes('\t')) return '\t'
   const semicolons = (firstLine.match(/;/g) ?? []).length
   const commas = (firstLine.match(/,/g) ?? []).length
   return semicolons >= commas ? ';' : ','
@@ -31,6 +33,9 @@ function mapColumnName(name: string): string | null {
   if (['dicke', 'd', 'thickness', 't'].includes(n)) return 'thickness'
   return null
 }
+
+// Column order of StockTable / PiecesTable: Name, L, B, D, M, Anz
+const DEFAULT_COLUMN_ORDER = ['name', 'height', 'width', 'thickness', 'grain', 'quantity']
 
 function mapGrain(value: string): 'any' | 'horizontal' | 'vertical' {
   const v = value.trim().toLowerCase()
@@ -54,14 +59,22 @@ export function parseCsv(text: string): CsvImportResult {
 
   // Parse header
   const headerCells = lines[0].split(sep)
-  const colMap: Record<number, string> = {}
+  let colMap: Record<number, string> = {}
   for (let i = 0; i < headerCells.length; i++) {
     const mapped = mapColumnName(headerCells[i])
     if (mapped !== null) colMap[i] = mapped
   }
 
+  // No header recognized (e.g. rows copied from Excel without header):
+  // assume the table's column order and treat the first line as data
+  let firstDataLine = 1
+  if (Object.keys(colMap).length === 0) {
+    colMap = Object.fromEntries(DEFAULT_COLUMN_ORDER.map((field, i) => [i, field]))
+    firstDataLine = 0
+  }
+
   // Process data rows (starting at line index 1, displayed as line 2)
-  for (let lineIdx = 1; lineIdx < lines.length; lineIdx++) {
+  for (let lineIdx = firstDataLine; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx].trim()
     if (line === '') continue
 
@@ -98,7 +111,7 @@ export function parseCsv(text: string): CsvImportResult {
       continue
     }
 
-    const dataRowIndex = lineIdx - 1  // 0-based index among data rows
+    const dataRowIndex = lineIdx - firstDataLine  // 0-based index among data rows
     const rawName = row['name'] ?? ''
     const name = rawName.trim() || `Teil ${dataRowIndex + 1}`
     const grain = mapGrain(row['grain'] ?? '')

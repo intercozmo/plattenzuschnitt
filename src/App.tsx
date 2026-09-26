@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useStore } from './store'
 import { computeCutPlan } from './algorithm/guillotine'
 import { MAX_TOTAL_PIECES } from './constants'
@@ -61,6 +61,18 @@ export default function App() {
     setPlan(newPlan)
     if (!isDesktop) setActiveTab('diagramm')
   }
+
+  // Ctrl+Enter / Cmd+Enter computes from anywhere
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canCompute) {
+        e.preventDefault()
+        handleCompute()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
   if (isDesktop) {
     return (

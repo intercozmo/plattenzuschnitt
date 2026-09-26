@@ -18,6 +18,7 @@ export default function Header({ onCompute, canCompute }: Props) {
         type="button"
         onClick={onCompute}
         disabled={!canCompute}
+        title="Strg+Enter"
         className={`
           rounded-lg font-semibold transition-colors
           ${isDesktop ? 'px-5 py-2 text-sm' : 'px-3 py-1.5 text-xs'}
