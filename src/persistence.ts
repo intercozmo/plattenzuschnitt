@@ -31,6 +31,7 @@ export function loadState(): PersistedState | null {
         ...p,
         thickness: typeof p.thickness === 'number' ? p.thickness : 18, // default 18mm
         grain: (p.grain === 'horizontal' || p.grain === 'vertical') ? p.grain : 'any',
+        price: typeof p.price === 'number' ? p.price : 0,
       })),
       cutPieces: parsed.cutPieces.map((p: CutPiece & { thickness?: number }) => ({
         ...p,

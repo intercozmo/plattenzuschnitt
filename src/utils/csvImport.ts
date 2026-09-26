@@ -7,6 +7,7 @@ export interface CsvPiece {
   thickness: number
   quantity: number
   grain: 'any' | 'horizontal' | 'vertical'
+  price?: number  // only set when the file has a price column
 }
 
 export interface CsvImportResult {
@@ -31,11 +32,13 @@ function mapColumnName(name: string): string | null {
   if (['name', 'bezeichnung', 'label', 'beschreibung'].includes(n)) return 'name'
   if (['maserung', 'grain', 'faserrichtung'].includes(n)) return 'grain'
   if (['dicke', 'd', 'thickness', 't'].includes(n)) return 'thickness'
+  if (['preis', 'price', 'kosten', '€'].includes(n)) return 'price'
   return null
 }
 
 // Column order of StockTable / PiecesTable: Name, L, B, D, M, Anz
-const DEFAULT_COLUMN_ORDER = ['name', 'height', 'width', 'thickness', 'grain', 'quantity']
+// (StockTable additionally has €)
+const DEFAULT_COLUMN_ORDER = ['name', 'height', 'width', 'thickness', 'grain', 'quantity', 'price']
 
 function mapGrain(value: string): 'any' | 'horizontal' | 'vertical' {
   const v = value.trim().toLowerCase()
@@ -116,7 +119,13 @@ export function parseCsv(text: string): CsvImportResult {
     const name = rawName.trim() || `Teil ${dataRowIndex + 1}`
     const grain = mapGrain(row['grain'] ?? '')
 
-    pieces.push({ name, width, height, thickness, quantity: Math.round(quantity), grain })
+    const piece: CsvPiece = { name, width, height, thickness, quantity: Math.round(quantity), grain }
+    if (row['price']) {
+      // Accept German decimal comma ("12,50")
+      const price = Number(row['price'].replace(',', '.'))
+      piece.price = isNaN(price) || price < 0 ? 0 : price
+    }
+    pieces.push(piece)
   }
 
   return { pieces, errors }
@@ -129,6 +138,7 @@ export interface CsvStock {
   thickness: number
   quantity: number
   grain: 'any' | 'horizontal' | 'vertical'
+  price: number
 }
 
 export interface CsvStockResult {
@@ -146,6 +156,7 @@ export function parseStockCsv(text: string): CsvStockResult {
       thickness: p.thickness,
       quantity: p.quantity,
       grain: p.grain,
+      price: p.price ?? 0,
     })),
     errors: result.errors,
   }

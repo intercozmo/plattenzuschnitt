@@ -10,6 +10,7 @@ export interface StockPlate {
   thickness: number; // mm - material thickness
   grain: Grain;
   quantity: number;
+  price?: number;  // € per plate, used for material cost
 }
 
 export interface CutPiece {

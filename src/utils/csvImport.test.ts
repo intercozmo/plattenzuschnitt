@@ -45,7 +45,24 @@ describe('parseStockCsv', () => {
   it('maps name to label', () => {
     const r = parseStockCsv('Bezeichnung;L;B;D;Anzahl\nSpanplatte;2800;2070;19;4')
     expect(r.plates).toEqual([
-      { label: 'Spanplatte', height: 2800, width: 2070, thickness: 19, quantity: 4, grain: 'any' },
+      { label: 'Spanplatte', height: 2800, width: 2070, thickness: 19, quantity: 4, grain: 'any', price: 0 },
     ])
+  })
+})
+
+describe('price column', () => {
+  it('reads stock prices with decimal comma', () => {
+    const r = parseStockCsv('Bezeichnung;L;B;Anzahl;Preis\nMDF;2800;2070;2;45,90')
+    expect(r.plates[0].price).toBe(45.9)
+  })
+
+  it('defaults stock price to 0 when the column is missing', () => {
+    const r = parseStockCsv('L;B\n2800;2070')
+    expect(r.plates[0].price).toBe(0)
+  })
+
+  it('reads price as 7th column of headerless stock rows', () => {
+    const r = parseStockCsv('MDF\t2800\t2070\t19\t\t2\t39.5')
+    expect(r.plates[0]).toMatchObject({ label: 'MDF', quantity: 2, price: 39.5 })
   })
 })
