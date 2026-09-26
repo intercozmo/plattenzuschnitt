@@ -9,6 +9,7 @@ import InputPanel from './components/InputPanel'
 import DiagramPanel from './components/DiagramPanel'
 import ResultsPanel from './components/ResultsPanel'
 import MobileTabBar from './components/MobileTabBar'
+import PrintSheet from './components/PrintSheet'
 import type { CutPlan } from './types'
 
 export interface PieceHighlight {
@@ -74,9 +75,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
+  const printSheet = plan && <PrintSheet plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} />
+
   if (isDesktop) {
     return (
-      <div className="h-screen overflow-hidden flex flex-col">
+      <>
+      <div className="h-screen overflow-hidden flex flex-col print:hidden">
         <Header onCompute={handleCompute} canCompute={canCompute} />
         <div className="grid grid-cols-[420px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
@@ -90,11 +94,14 @@ export default function App() {
           </aside>
         </div>
       </div>
+      {printSheet}
+      </>
     )
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
+    <>
+    <div className="h-screen overflow-hidden flex flex-col print:hidden">
       <Header onCompute={handleCompute} canCompute={canCompute} />
       <div className="h-[calc(100vh-52px-48px)] overflow-hidden">
         {activeTab === 'eingabe' && (
@@ -115,5 +122,7 @@ export default function App() {
       </div>
       <MobileTabBar activeTab={activeTab} onChange={setActiveTab} />
     </div>
+    {printSheet}
+    </>
   )
 }

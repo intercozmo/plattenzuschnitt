@@ -1,5 +1,5 @@
 // src/components/CutDiagram.tsx
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { PlacedPlate, CutPiece } from '../types'
 import type { PieceHighlight } from '../App'
 import { useResizeObserver } from '../hooks/useResizeObserver'
@@ -138,9 +138,11 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
   const kerfXLines = Array.from(kerfXSet)
   const kerfYLines = Array.from(kerfYSet)
 
-  // Stripe pattern for trim strips
-  const stripePatternId = `trim-stripe-${plate.stock.id}-${plate.plateIndex}`
-  const wastePatternId = `waste-hatch-${plate.stock.id}-${plate.plateIndex}`
+  // Stripe pattern for trim strips (instance id keeps ids unique when the
+  // same plate is rendered twice, e.g. on screen and in the print sheet)
+  const instanceId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const stripePatternId = `trim-stripe-${instanceId}`
+  const wastePatternId = `waste-hatch-${instanceId}`
 
   return (
     <div className="relative">
