@@ -1,6 +1,6 @@
 // src/algorithm/guillotine.ts
 import { DEFAULT_KERF_MM } from '../constants'
-import { itemLabel, materialMatches } from '../utils/items'
+import { itemLabel, materialMatches, mm, dims } from '../utils/items'
 import type {
   StockPlate,
   CutPiece,
@@ -392,6 +392,7 @@ export function computeCutPlan(
       wasteArea,
       wastePct,
       cutTree: result.cutNode ?? undefined,
+      kerf,
     })
 
     const placedSet = new Set(result.placements.map(p => p.piece))
@@ -437,12 +438,14 @@ export function computeCutPlan(
 // Cut sequence generation
 // ---------------------------------------------------------------------------
 
-function traverseCutTree(node: CutNode, stepCounter: { n: number }, steps: CutStep[]): void {
+function traverseCutTree(node: CutNode, kerf: number, stepCounter: { n: number }, steps: CutStep[]): void {
   const posLabel = node.direction === 'horizontal'
-    ? `Schnitt ${stepCounter.n}: Horizontal bei Y=${node.position}mm`
-    : `Schnitt ${stepCounter.n}: Vertikal bei X=${node.position}mm`
+    ? `Schnitt ${stepCounter.n}: Horizontal bei Y=${mm(node.position)} mm`
+    : `Schnitt ${stepCounter.n}: Vertikal bei X=${mm(node.position)} mm`
 
-  const pieceName: string | undefined = node.piece ? itemLabel(node.piece.piece) : undefined
+  const placement = node.piece
+  const pw = placement ? (placement.rotated ? placement.piece.height : placement.piece.width) : 0
+  const ph = placement ? (placement.rotated ? placement.piece.width : placement.piece.height) : 0
 
   steps.push({
     direction: node.direction,
@@ -450,46 +453,51 @@ function traverseCutTree(node: CutNode, stepCounter: { n: number }, steps: CutSt
     context: posLabel,
     panelWidth: node.panelWidth,
     panelHeight: node.panelHeight,
-    pieceName,
-    pieceX: node.piece?.x,
-    pieceY: node.piece?.y,
+    pieceName: placement ? itemLabel(placement.piece) : undefined,
+    pieceX: placement?.x,
+    pieceY: placement?.y,
+    itemWidth: placement ? pw : undefined,
+    itemHeight: placement ? ph : undefined,
   })
   stepCounter.n++
+  if (!placement) return
 
-  if (node.children) {
-    for (const child of node.children) {
-      traverseCutTree(child, stepCounter, steps)
-    }
-  } else {
-    // Leaf node: the remaining area after this cut is pure waste — emit a rest step
-    const restW = node.direction === 'horizontal'
-      ? node.panelWidth
-      : node.panelWidth - node.position
-    const restH = node.direction === 'horizontal'
-      ? node.panelHeight - node.position
-      : node.panelHeight
-    if (restW > 0 && restH > 0) {
+  // The two sub-panels next to the piece, in the order the search filled them
+  // (see searchUncached): each is either cut further (child node) or an offcut.
+  const { panelWidth: W, panelHeight: H } = node
+  const subPanels = node.direction === 'horizontal'
+    ? [{ w: W - pw - kerf, h: ph }, { w: W, h: H - ph - kerf }]
+    : [{ w: pw, h: H - ph - kerf }, { w: W - pw - kerf, h: H }]
+  const children = [...(node.children ?? [])]
+  for (const sub of subPanels) {
+    if (sub.w <= 0 || sub.h <= 0) continue
+    const childIdx = children.findIndex(c => c.panelWidth === sub.w && c.panelHeight === sub.h)
+    if (childIdx >= 0) {
+      traverseCutTree(children.splice(childIdx, 1)[0], kerf, stepCounter, steps)
+    } else {
       steps.push({
         direction: node.direction,
         position: node.position,
         context: `Schnitt ${stepCounter.n}: Rest`,
         panelWidth: node.panelWidth,
         panelHeight: node.panelHeight,
-        pieceName: `Rest ${restW}×${restH} mm`,
+        pieceName: `Rest ${dims(sub.w, sub.h)}`,
+        itemWidth: sub.w,
+        itemHeight: sub.h,
       })
       stepCounter.n++
     }
   }
 }
 
-export function generateCutSequence(plate: PlacedPlate, _kerf = DEFAULT_KERF_MM): CutStep[] {
-  if (plate.placements.length <= 1) return []
+export function generateCutSequence(plate: PlacedPlate, kerf = plate.kerf ?? DEFAULT_KERF_MM): CutStep[] {
+  if (plate.placements.length === 0) return []
 
   // If we have a cut tree, traverse it
   if (plate.cutTree) {
     const steps: CutStep[] = []
     const counter = { n: 1 }
-    traverseCutTree(plate.cutTree, counter, steps)
+    traverseCutTree(plate.cutTree, kerf, counter, steps)
     return steps
   }
 
@@ -515,7 +523,7 @@ export function generateCutSequence(plate: PlacedPlate, _kerf = DEFAULT_KERF_MM)
     steps.push({
       direction: 'horizontal',
       position: y,
-      context: `Schnitt ${stepNum}: Horizontal bei Y=${y} mm`,
+      context: `Schnitt ${stepNum}: Horizontal bei Y=${mm(y)} mm`,
     })
     stepNum++
   }
@@ -525,7 +533,7 @@ export function generateCutSequence(plate: PlacedPlate, _kerf = DEFAULT_KERF_MM)
     steps.push({
       direction: 'vertical',
       position: x,
-      context: `Schnitt ${stepNum}: Vertikal bei X=${x} mm`,
+      context: `Schnitt ${stepNum}: Vertikal bei X=${mm(x)} mm`,
     })
     stepNum++
   }

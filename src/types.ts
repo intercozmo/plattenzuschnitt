@@ -42,6 +42,7 @@ export interface PlacedPlate {
   wasteArea: number;
   wastePct: number;   // wasteArea / (stock.width × stock.height) × 100
   cutTree?: CutNode;  // root of the guillotine cut tree for this plate
+  kerf?: number;      // saw kerf used for this plate (needed to size offcuts)
 }
 
 export interface CutStep {
@@ -54,6 +55,8 @@ export interface CutStep {
   pieceName?: string;    // name of the piece placed by this cut (if any)
   pieceX?: number;       // algorithm-space x of placed piece
   pieceY?: number;       // algorithm-space y of placed piece
+  itemWidth?: number;    // size of the resulting piece or offcut (for its price share)
+  itemHeight?: number;
 }
 
 // What is missing when not all pieces/parts could be placed (see algorithm/shortage.ts)

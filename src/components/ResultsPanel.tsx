@@ -1,6 +1,6 @@
 // src/components/ResultsPanel.tsx
 import { useState } from 'react'
-import { itemLabel, describePlate } from '../utils/items'
+import { itemLabel, describePlate, dims } from '../utils/items'
 import ShortageNotice from './ShortageNotice'
 import type { CutPlan } from '../types'
 import type { PieceHighlight } from '../App'
@@ -66,7 +66,7 @@ export default function ResultsPanel({ plan, kerf, highlight, onHighlight }: Pro
           stockName="Platte"
           describeStock={describePlate}
           stockPrice={p => p.price ?? 0}
-          describeItem={p => `${itemLabel(p)} — ${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`}
+          describeItem={p => `${itemLabel(p)} — ${dims(p.height, p.width, p.thickness)}${p.material ? ` · ${p.material}` : ''}`}
           itemQuantity={p => p.quantity}
         />
       </div>
@@ -104,7 +104,7 @@ export default function ResultsPanel({ plan, kerf, highlight, onHighlight }: Pro
           <ul className="space-y-1">
             {plan.unplacedPieces.map((piece) => (
               <li key={piece.id} className="text-sm text-red-600">
-                {itemLabel(piece)} — {piece.width}×{piece.height}×{piece.thickness} mm{piece.material && ` ${piece.material}`}
+                {itemLabel(piece)} — {dims(piece.height, piece.width, piece.thickness)}{piece.material && ` ${piece.material}`}
                 {piece.quantity > 1 && ` (${piece.quantity}×)`}
               </li>
             ))}
