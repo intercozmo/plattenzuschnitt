@@ -187,7 +187,8 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, hi
                   className="text-sm font-medium text-slate-700 cursor-pointer"
                 >
                   Platte {idx + 1}/{plan.plates.length}:{' '}
-                  {plate.stock.label ? `${plate.stock.label} ` : ''}L {plate.stock.height} × B {plate.stock.width} mm
+                  {plate.stock.label ? `${plate.stock.label} ` : ''}L {plate.stock.height} × B {plate.stock.width} × D {plate.stock.thickness} mm
+                  {plate.stock.material && ` · ${plate.stock.material}`}
                 </label>
               </div>
 

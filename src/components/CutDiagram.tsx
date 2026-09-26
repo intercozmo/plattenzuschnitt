@@ -3,6 +3,7 @@ import { useId, useRef, useState } from 'react'
 import type { PlacedPlate, CutPiece } from '../types'
 import type { PieceHighlight } from '../App'
 import { useResizeObserver } from '../hooks/useResizeObserver'
+import { itemLabel } from '../utils/items'
 
 interface Props {
   plate: PlacedPlate
@@ -226,7 +227,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                       <text x={cx} y={cy - 30}
                         textAnchor="middle" fontSize={50} fontWeight="600" fill="#1e293b"
                         transform={rot}>
-                        {p.piece.name}
+                        {itemLabel(p.piece)}
                       </text>
                       <text x={cx} y={cy + 30}
                         textAnchor="middle" fontSize={40} fill="#334155"
@@ -259,7 +260,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                     <text x={cx} y={cy}
                       textAnchor="middle" dominantBaseline="middle" fontSize={36} fontWeight="600" fill="#1e293b"
                       transform={rot}>
-                      {p.piece.name}
+                      {itemLabel(p.piece)}
                     </text>
                   )
                 })()}
@@ -420,7 +421,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
 
       {tooltip && (
         <div className="absolute top-2 left-2 bg-slate-800 text-white text-sm rounded px-3 py-2 z-10">
-          <strong>{tooltip.piece.name}</strong><br />
+          <strong>{itemLabel(tooltip.piece)}</strong>{tooltip.piece.material && ` · ${tooltip.piece.material}`}<br />
           {tooltip.piece.width}×{tooltip.piece.height} mm
         </div>
       )}

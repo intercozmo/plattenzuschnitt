@@ -120,7 +120,7 @@ export default function App() {
       <>
       <div className="h-screen overflow-hidden flex flex-col print:hidden">
         <Header onCompute={handleCompute} canCompute={canCompute} computing={computing} onCancel={cancel} onProjectChange={handleProjectChange} />
-        <div className="grid grid-cols-[420px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
+        <div className="grid grid-cols-[500px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
             {inputPanel}
           </aside>

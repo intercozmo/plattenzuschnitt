@@ -1,26 +1,10 @@
 // src/components/LinearStockTable.tsx
-import InlineTable, { type Column, type Row, type CsvExportConfig, type CsvImportConfig } from './InlineTable'
+import InlineTable, { type Row } from './InlineTable'
 import { useStore } from '../store'
 import type { StockBar } from '../types'
-import { parseLinearCsv } from '../utils/csvImport'
+import { itemColumns, csvImportConfig, text, positive, nonNegative } from './itemColumns'
 
-const COLUMNS: Column[] = [
-  { key: 'label',    label: 'Bezeichnung', type: 'text', sortable: true },
-  { key: 'length',   label: 'L',      type: 'number', width: '60px', sortable: true },
-  { key: 'profile',  label: 'Profil', type: 'text',   width: '72px', sortable: true },
-  { key: 'quantity', label: 'Anz',    type: 'number', width: '40px', csvLabel: 'Anzahl' },
-  { key: 'price',    label: '€',      type: 'number', width: '52px', csvLabel: 'Preis' },
-]
-
-function toBars(rows: Record<string, unknown>[]): Array<Omit<StockBar, 'id'>> {
-  return rows.map(r => ({
-    label: String(r['name'] ?? ''),
-    length: Number(r['length']),
-    profile: String(r['profile'] ?? ''),
-    quantity: Number(r['quantity']),
-    price: Number(r['price']) || 0,
-  }))
-}
+const COLUMNS = itemColumns({ price: true })
 
 export default function LinearStockTable() {
   const stockBars = useStore(s => s.stockBars)
@@ -30,38 +14,49 @@ export default function LinearStockTable() {
   const replaceStockBars = useStore(s => s.replaceStockBars)
   const appendStockBars = useStore(s => s.appendStockBars)
 
-  const rows: Row[] = stockBars.map(b => ({ ...b, price: b.price ?? 0 }))
+  const rows: Row[] = stockBars.map(b => ({
+    id: b.id,
+    pos: b.pos ?? '',
+    name: b.label,
+    material: b.material,
+    quantity: b.quantity,
+    width: b.width,
+    thickness: b.thickness,
+    length: b.length,
+    price: b.price ?? 0,
+  }))
 
   function handleSave(id: string, values: Record<string, unknown>) {
     updateStockBar(id, {
-      label: String(values['label'] ?? ''),
-      length: Math.max(1, Number(values['length']) || 0),
-      profile: String(values['profile'] ?? '').trim(),
-      quantity: Math.max(1, Number(values['quantity']) || 1),
-      price: Number(values['price']) || 0,
+      pos: text(values['pos']),
+      label: text(values['name']),
+      material: text(values['material']),
+      quantity: positive(values['quantity'], 1),
+      width: nonNegative(values['width']),
+      thickness: nonNegative(values['thickness']),
+      length: positive(values['length'], 0),
+      price: nonNegative(values['price']),
     })
   }
 
-  const csvExport: CsvExportConfig = { filename: 'stangenbestand.csv' }
-
-  const csvImport: CsvImportConfig = {
-    parseFile: (text: string) => {
-      const result = parseLinearCsv(text)
-      return { rows: result.rows.map(r => ({ ...r })), errors: result.errors }
-    },
-    onReplace: rows => replaceStockBars(toBars(rows)),
-    onAppend: rows => appendStockBars(toBars(rows)),
-  }
+  const csvImport = csvImportConfig<Omit<StockBar, 'id'>>(
+    r => ({
+      pos: r.pos, label: r.name, material: r.material, quantity: r.quantity,
+      width: r.width, thickness: r.thickness, length: r.length, price: r.price,
+    }),
+    replaceStockBars,
+    appendStockBars,
+  )
 
   return (
     <InlineTable
       columns={COLUMNS}
       rows={rows}
-      onAdd={() => addStockBar({ label: '', length: 6000, profile: '', quantity: 1, price: 0 })}
+      onAdd={() => addStockBar({ pos: '', label: '', material: '', quantity: 1, width: 0, thickness: 0, length: 6000, price: 0 })}
       onSave={handleSave}
       onDelete={removeStockBar}
       addLabel="+ Stange hinzufügen"
-      csvExport={csvExport}
+      csvExport={{ filename: 'stangenbestand.csv' }}
       csvImport={csvImport}
     />
   )

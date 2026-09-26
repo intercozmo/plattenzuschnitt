@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { computeLinearPlan } from './linear'
 import type { StockBar, LinearPart } from '../types'
 
-const bar6000: StockBar = { id: 'b1', label: 'Latte', length: 6000, profile: '40×60', quantity: 5 }
-const part = (id: string, length: number, quantity = 1, profile = '40×60'): LinearPart =>
-  ({ id, name: id, length, profile, quantity })
+const bar6000: StockBar = { id: 'b1', label: 'Latte', material: 'Fichte', width: 40, thickness: 60, length: 6000, quantity: 5 }
+const part = (id: string, length: number, quantity = 1, section: Partial<LinearPart> = {}): LinearPart =>
+  ({ id, name: id, material: 'Fichte', width: 40, thickness: 60, length, quantity, ...section })
 
 describe('computeLinearPlan', () => {
   it('places parts that exactly fill a bar without trailing cut', () => {
@@ -31,14 +31,21 @@ describe('computeLinearPlan', () => {
     expect(plan.totalWastePct).toBe(0)
   })
 
-  it('only combines parts and bars with the same profile', () => {
-    const plan = computeLinearPlan([bar6000], [part('a', 1000), part('b', 1000, 1, '20×40')], 0)
+  it('only combines parts and bars with the same cross-section', () => {
+    const other = { width: 20, thickness: 40 }
+    const plan = computeLinearPlan([bar6000], [part('a', 1000), part('b', 1000, 1, other)], 0)
     expect(plan.bars).toHaveLength(1)
-    expect(plan.unplacedParts).toEqual([part('b', 1000, 1, '20×40')])
+    expect(plan.unplacedParts).toEqual([part('b', 1000, 1, other)])
   })
 
-  it('ignores surrounding whitespace in profiles', () => {
-    const plan = computeLinearPlan([bar6000], [part('a', 1000, 1, ' 40×60 ')], 0)
+  it('only combines parts and bars of the same material (case-insensitive)', () => {
+    const plan = computeLinearPlan([bar6000], [part('a', 1000, 1, { material: ' fichte ' }), part('b', 1000, 1, { material: 'Accoya' })], 0)
+    expect(plan.bars[0].placements.map(p => p.part.id)).toEqual(['a'])
+    expect(plan.unplacedParts.map(p => p.id)).toEqual(['b'])
+  })
+
+  it('treats unspecified cross-section and material as matching anything', () => {
+    const plan = computeLinearPlan([bar6000], [part('a', 1000, 1, { width: 0, thickness: 0, material: '' })], 0)
     expect(plan.unplacedParts).toEqual([])
   })
 

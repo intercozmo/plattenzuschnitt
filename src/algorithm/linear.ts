@@ -1,6 +1,7 @@
 // src/algorithm/linear.ts
-// 1D cutting: Best-Fit-Decreasing over bars of matching profile
+// 1D cutting: Best-Fit-Decreasing over bars of matching cross-section and material
 import { DEFAULT_KERF_MM } from '../constants'
+import { materialMatches, dimensionMatches } from '../utils/items'
 import type { StockBar, LinearPart, LinearPlacement, PlacedBar, LinearPlan } from '../types'
 
 interface OpenBar {
@@ -10,8 +11,10 @@ interface OpenBar {
   next: number  // offset where the next part would start
 }
 
-function sameProfile(a: string, b: string): boolean {
-  return a.trim() === b.trim()
+function fitsBar(part: LinearPart, bar: StockBar): boolean {
+  return dimensionMatches(part.width, bar.width)
+    && dimensionMatches(part.thickness, bar.thickness)
+    && materialMatches(part.material, bar.material)
 }
 
 export function computeLinearPlan(
@@ -39,7 +42,7 @@ export function computeLinearPlan(
     // Best fit: open bar with the least space left after placing the part
     let best: OpenBar | null = null
     for (const bar of open) {
-      if (!sameProfile(bar.stock.profile, part.profile)) continue
+      if (!fitsBar(part, bar.stock)) continue
       if (bar.next + part.length > bar.stock.length) continue
       if (!best || bar.stock.length - bar.next < best.stock.length - best.next) best = bar
     }
@@ -49,7 +52,7 @@ export function computeLinearPlan(
       let stock: StockBar | null = null
       for (const s of stockBars) {
         if ((remaining.get(s.id) ?? 0) <= 0) continue
-        if (!sameProfile(s.profile, part.profile)) continue
+        if (!fitsBar(part, s)) continue
         if (startOffset + part.length > s.length) continue
         if (!stock || s.length < stock.length) stock = s
       }

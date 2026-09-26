@@ -1,6 +1,7 @@
 // src/components/PrintSheet.tsx
 // Workshop sheet that is only visible when printing (or "Save as PDF")
 import type { CutPlan, LinearPlan } from '../types'
+import { itemLabel } from '../utils/items'
 import { useStore } from '../store'
 import { buildPieceColorMap } from './DiagramPanel'
 import CutDiagram from './CutDiagram'
@@ -36,7 +37,7 @@ export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
           <ul className="text-sm">
             {plan.unplacedPieces.map(piece => (
               <li key={piece.id}>
-                {piece.name} — {piece.width}×{piece.height} mm
+                {itemLabel(piece)} — {piece.width}×{piece.height}×{piece.thickness} mm{piece.material && ` ${piece.material}`}
                 {piece.quantity > 1 && ` (${piece.quantity}×)`}
               </li>
             ))}

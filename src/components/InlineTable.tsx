@@ -79,7 +79,7 @@ export default function InlineTable({
       const av = a[sortKey]
       const bv = b[sortKey]
       const cmp = typeof av === 'string'
-        ? String(av).localeCompare(String(bv))
+        ? String(av).localeCompare(String(bv), 'de', { numeric: true })
         : Number(av) - Number(bv)
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -282,7 +282,7 @@ export default function InlineTable({
                     <th
                       key={col.key}
                       style={col.width ? { width: col.width } : undefined}
-                      className={`text-left text-slate-600 font-semibold py-1 px-2 border border-slate-300 bg-slate-100 select-none${col.sortable ? ' cursor-pointer hover:bg-slate-200' : ''}`}
+                      className={`text-left text-slate-600 font-semibold py-1 px-1.5 border border-slate-300 bg-slate-100 select-none${col.sortable ? ' cursor-pointer hover:bg-slate-200' : ''}`}
                       onClick={col.sortable ? () => handleSort(col.key) : undefined}
                     >
                       {col.label}{col.sortable && sortKey === col.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
@@ -310,7 +310,7 @@ export default function InlineTable({
                       }}
                     >
                       {columns.map((col, colIndex) => (
-                        <td key={col.key} className="py-1 px-2 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
+                        <td key={col.key} className="py-1 px-1.5 border border-slate-200" onClick={e => isEditing && e.stopPropagation()}>
                           {isEditing ? (
                             col.type === 'grain' ? (
                               <select

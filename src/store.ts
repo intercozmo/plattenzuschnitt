@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { shallow } from 'zustand/shallow'
 import { nanoid } from 'nanoid'
-import type { StockPlate, CutPiece, Grain, OptimizationPriority, AppMode, StockBar, LinearPart } from './types'
+import type { StockPlate, CutPiece, OptimizationPriority, AppMode, StockBar, LinearPart } from './types'
 import { loadState, saveState, type PersistedState } from './persistence'
 import { DEFAULT_KERF_MM } from './constants'
 
@@ -17,18 +17,18 @@ interface AppState {
   trimTop: number;
 
   // Stock actions
-  addStockPlate: (label: string, width: number, height: number, thickness: number, grain: Grain, quantity: number, price: number) => void;
+  addStockPlate: (plate: Omit<StockPlate, 'id'>) => void;
   updateStockPlate: (id: string, updates: Partial<Omit<StockPlate, 'id'>>) => void;
   removeStockPlate: (id: string) => void;
   replaceStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
   appendStockPlates: (plates: Array<Omit<StockPlate, 'id'>>) => void;
 
   // Piece actions
-  addCutPiece: (name: string, width: number, height: number, thickness: number, quantity: number, grain: Grain) => void;
+  addCutPiece: (piece: Omit<CutPiece, 'id'>) => void;
   updateCutPiece: (id: string, updates: Partial<Omit<CutPiece, 'id'>>) => void;
   removeCutPiece: (id: string) => void;
-  replaceCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
-  appendCutPieces: (pieces: Array<{ name: string; width: number; height: number; thickness: number; quantity: number; grain: 'any' | 'horizontal' | 'vertical' }>) => void;
+  replaceCutPieces: (pieces: Array<Omit<CutPiece, 'id'>>) => void;
+  appendCutPieces: (pieces: Array<Omit<CutPiece, 'id'>>) => void;
 
   // Option actions
   setKerf: (kerf: number) => void;
@@ -100,8 +100,8 @@ export const useStore = create<AppState>()(
     linearParts: persisted?.linearParts ?? [],
     linearTrim: persisted?.linearTrim ?? 0,
 
-    addStockPlate: (label, width, height, thickness, grain, quantity, price) =>
-      set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, thickness, grain, quantity, price }] })),
+    addStockPlate: (plate) =>
+      set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), ...plate }] })),
 
     updateStockPlate: (id, updates) =>
       set(s => ({ stockPlates: s.stockPlates.map(p => p.id === id ? { ...p, ...updates } : p) })),
@@ -115,8 +115,8 @@ export const useStore = create<AppState>()(
     appendStockPlates: (plates) =>
       set(s => ({ stockPlates: [...s.stockPlates, ...plates.map(p => ({ id: nanoid(), ...p }))] })),
 
-    addCutPiece: (name, width, height, thickness, quantity, grain) =>
-      set(s => ({ cutPieces: [...s.cutPieces, { id: nanoid(), name, width, height, thickness, quantity, grain }] })),
+    addCutPiece: (piece) =>
+      set(s => ({ cutPieces: [...s.cutPieces, { id: nanoid(), ...piece }] })),
 
     updateCutPiece: (id, updates) =>
       set(s => ({ cutPieces: s.cutPieces.map(p => p.id === id ? { ...p, ...updates } : p) })),

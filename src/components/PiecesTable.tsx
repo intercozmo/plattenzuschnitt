@@ -1,17 +1,10 @@
 // src/components/PiecesTable.tsx
-import InlineTable, { type Column, type Row, type CsvExportConfig, type CsvImportConfig } from './InlineTable'
+import InlineTable, { type Row } from './InlineTable'
 import { useStore } from '../store'
 import type { CutPiece } from '../types'
-import { parseCsv } from '../utils/csvImport'
+import { itemColumns, grainExport, csvImportConfig, text, positive } from './itemColumns'
 
-const COLUMNS: Column[] = [
-  { key: 'name',      label: 'Name',  type: 'text',   sortable: true },
-  { key: 'height',    label: 'L',     type: 'number', width: '52px', sortable: true },
-  { key: 'width',     label: 'B',     type: 'number', width: '52px', sortable: true },
-  { key: 'thickness', label: 'D',     type: 'number', width: '40px' },
-  { key: 'grain',     label: 'M',     type: 'grain' as const, width: '40px', csvLabel: 'Maserung' },
-  { key: 'quantity',  label: 'Anz',   type: 'number', width: '40px', sortable: true, csvLabel: 'Anzahl' },
-]
+const COLUMNS = itemColumns({ grain: true })
 
 export default function PiecesTable() {
   const useInlineTableForPieces = useStore(s => s.useInlineTableForPieces)
@@ -24,26 +17,32 @@ export default function PiecesTable() {
 
   const rows: Row[] = cutPieces.map(p => ({
     id: p.id,
+    pos: p.pos ?? '',
     name: p.name,
-    width: p.width,
-    height: p.height,
-    thickness: p.thickness,
-    grain: p.grain,
+    material: p.material ?? '',
     quantity: p.quantity,
+    width: p.width,
+    thickness: p.thickness,
+    length: p.height,
+    grain: p.grain,
   }))
 
   function handleAdd() {
-    addCutPiece('', 400, 300, 18, 1, 'any')
+    // New pieces default to the material and thickness of the first plate
+    const plate = useStore.getState().stockPlates[0]
+    addCutPiece({ pos: '', name: '', material: plate?.material ?? '', quantity: 1, width: 400, thickness: plate?.thickness ?? 18, height: 300, grain: 'any' })
   }
 
   function handleSave(id: string, values: Record<string, unknown>) {
     updateCutPiece(id, {
-      name: String(values['name'] ?? '').trim() || 'Teil',
-      width: Math.max(1, Number(values['width']) || 0),
-      height: Math.max(1, Number(values['height']) || 0),
-      thickness: Math.max(1, Number(values['thickness']) || 0),
-      quantity: Math.max(1, Number(values['quantity']) || 1),
-      grain: (values['grain'] as CutPiece['grain']) ?? 'any',
+      pos: text(values['pos']),
+      name: text(values['name']) || 'Teil',
+      material: text(values['material']),
+      quantity: positive(values['quantity'], 1),
+      width: positive(values['width'], 0),
+      thickness: positive(values['thickness'], 0),
+      height: positive(values['length'], 0),
+      grain: (values['grain'] as CutPiece['grain']) || 'any',
     })
   }
 
@@ -52,44 +51,17 @@ export default function PiecesTable() {
     updateCutPiece(id, { grain: next as CutPiece['grain'] })
   }
 
-  const csvExport: CsvExportConfig = {
-    filename: 'stückliste.csv',
-    grainExport: (g: string) => {
-      if (g === 'horizontal') return 'Längs'
-      if (g === 'vertical') return 'Quer'
-      return ''
-    },
-  }
+  const csvExport = { filename: 'stückliste.csv', grainExport }
 
-  const csvImport: CsvImportConfig = {
-    parseFile: (text: string) => {
-      const result = parseCsv(text)
-      return {
-        rows: result.pieces.map(p => ({ ...p })),
-        errors: result.errors,
-      }
-    },
-    onReplace: (importedRows) => {
-      replaceCutPieces(importedRows.map(r => ({
-        name: String(r['name'] ?? ''),
-        width: Number(r['width']),
-        height: Number(r['height']),
-        thickness: Number(r['thickness']),
-        grain: (r['grain'] as CutPiece['grain']) ?? 'any',
-        quantity: Number(r['quantity']),
-      })))
-    },
-    onAppend: (importedRows) => {
-      appendCutPieces(importedRows.map(r => ({
-        name: String(r['name'] ?? ''),
-        width: Number(r['width']),
-        height: Number(r['height']),
-        thickness: Number(r['thickness']),
-        grain: (r['grain'] as CutPiece['grain']) ?? 'any',
-        quantity: Number(r['quantity']),
-      })))
-    },
-  }
+  const csvImport = csvImportConfig<Omit<CutPiece, 'id'>>(
+    r => ({
+      pos: r.pos, name: r.name, material: r.material, quantity: r.quantity,
+      width: r.width, thickness: r.thickness || 18, height: r.length, grain: r.grain,
+    }),
+    replaceCutPieces,
+    appendCutPieces,
+    { requireWidth: true },
+  )
 
   // Phase 1: render InlineTable behind feature flag; else render a lightweight fallback table
   if (useInlineTableForPieces) {

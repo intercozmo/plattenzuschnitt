@@ -2,6 +2,7 @@
 import { Fragment } from 'react'
 import type { LinearPlan } from '../types'
 import { offcutLength } from './LinearDiagram'
+import { itemLabel, sectionLabel } from '../utils/items'
 
 interface Props {
   plan: LinearPlan
@@ -57,7 +58,7 @@ export default function LinearResults({ plan, kerf }: Props) {
           <ul className="space-y-1">
             {plan.unplacedParts.map(part => (
               <li key={part.id} className="text-sm text-red-600">
-                {part.name} — {part.length} mm{part.profile && ` (${part.profile})`}
+                {itemLabel(part)} — {part.length} mm{sectionLabel(part) && ` (${sectionLabel(part)})`}
                 {part.quantity > 1 && ` ${part.quantity}×`}
               </li>
             ))}
@@ -83,14 +84,14 @@ export default function LinearResults({ plan, kerf }: Props) {
                 <Fragment key={`${bar.stock.id}-${bar.barIndex}`}>
                   <tr className="bg-slate-50">
                     <td colSpan={4} className="py-1 px-2 text-slate-500 font-medium">
-                      Stange {i + 1}: {bar.stock.length} mm{bar.stock.profile && ` · ${bar.stock.profile}`}
+                      Stange {i + 1}: {bar.stock.length} mm{sectionLabel(bar.stock) && ` · ${sectionLabel(bar.stock)}`}
                       {bar.stock.label ? ` — ${bar.stock.label}` : ''}
                     </td>
                   </tr>
                   {bar.placements.map((p, j) => (
                     <tr key={j} className="border-b border-slate-50">
                       <td className="py-1 px-2 text-slate-400">{j + 1}</td>
-                      <td className="py-1 px-2 text-slate-600">{p.part.name}</td>
+                      <td className="py-1 px-2 text-slate-600">{itemLabel(p.part)}</td>
                       <td className="py-1 px-2 text-slate-600 text-right">{p.part.length} mm</td>
                       <td className="py-1 px-2 text-blue-600 text-right">{p.offset + p.part.length} mm</td>
                     </tr>

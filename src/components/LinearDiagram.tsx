@@ -1,6 +1,7 @@
 // src/components/LinearDiagram.tsx
 import type { LinearPlan } from '../types'
 import { COLOR_PALETTE } from '../constants'
+import { itemLabel, sectionLabel } from '../utils/items'
 
 interface Props {
   plan: LinearPlan
@@ -48,7 +49,7 @@ export default function LinearDiagram({ plan, kerf, trimStart }: Props) {
               <div className="flex flex-wrap items-baseline gap-x-3 text-sm mb-1">
                 <span className="font-medium text-slate-700">
                   Stange {i + 1}/{plan.bars.length}: {bar.stock.label ? `${bar.stock.label} ` : ''}L {bar.stock.length} mm
-                  {bar.stock.profile && ` · ${bar.stock.profile}`}
+                  {sectionLabel(bar.stock) && ` · ${sectionLabel(bar.stock)}`}
                 </span>
                 <span className="text-xs text-slate-500">Verschnitt {bar.wastePct.toFixed(1)}%</span>
               </div>
@@ -67,9 +68,9 @@ export default function LinearDiagram({ plan, kerf, trimStart }: Props) {
                     key={j}
                     className="absolute inset-y-0 border-r-2 border-slate-800 flex flex-col items-center justify-center overflow-hidden text-slate-900 leading-tight"
                     style={{ left: pct(p.offset), width: pct(p.part.length), background: colors.get(p.part.id) }}
-                    title={`${p.part.name} – ${p.part.length} mm`}
+                    title={`${itemLabel(p.part)} – ${p.part.length} mm`}
                   >
-                    <span className="text-xs font-semibold truncate max-w-full px-0.5">{p.part.name}</span>
+                    <span className="text-xs font-semibold truncate max-w-full px-0.5">{itemLabel(p.part)}</span>
                     <span className="text-[10px] truncate max-w-full px-0.5">{p.part.length}</span>
                   </div>
                 ))}
