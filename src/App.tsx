@@ -1,10 +1,10 @@
 // src/App.tsx
 import { useState, useCallback, useEffect } from 'react'
 import { useStore } from './store'
-import { computeCutPlan } from './algorithm/guillotine'
-import { computeLinearPlan } from './algorithm/linear'
 import { MAX_TOTAL_PIECES } from './constants'
 import { useMediaQuery } from './hooks/useMediaQuery'
+import { useComputeWorker } from './hooks/useComputeWorker'
+import type { ComputeRequest } from './algorithm/computeRequest'
 import Header from './components/Header'
 import InputPanel from './components/InputPanel'
 import DiagramPanel from './components/DiagramPanel'
@@ -54,33 +54,36 @@ export default function App() {
 
   const { cutPieces, stockPlates, kerf, trimLeft, trimTop, mode, stockBars, linearParts, linearTrim } = useStore()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const { compute, cancel, computing } = useComputeWorker()
 
   const totalPieces = cutPieces.reduce((s, p) => s + p.quantity, 0)
   const canCompute = mode === '1d'
     ? linearParts.length > 0 && stockBars.length > 0
     : cutPieces.length > 0 && stockPlates.length > 0 && totalPieces <= MAX_TOTAL_PIECES
 
-  function handleCompute() {
-    if (mode === '1d') {
-      const { stockBars, linearParts, kerf, linearTrim } = useStore.getState()
-      setLinearPlan(computeLinearPlan(stockBars, linearParts, kerf, linearTrim))
+  async function handleCompute() {
+    const s = useStore.getState()
+    const request: ComputeRequest = s.mode === '1d'
+      ? { mode: '1d', stockBars: s.stockBars, linearParts: s.linearParts, kerf: s.kerf, linearTrim: s.linearTrim }
+      : {
+          mode: '2d', stockPlates: s.stockPlates, cutPieces: s.cutPieces, kerf: s.kerf,
+          priority: s.priority, grainEnabled: s.grainEnabled, trimLeft: s.trimLeft, trimTop: s.trimTop,
+        }
+    try {
+      const result = await compute(request)
+      if (!result) return  // cancelled
+      if (result.mode === '1d') setLinearPlan(result.plan)
+      else setPlan(result.plan)
       if (!isDesktop) setActiveTab('diagramm')
-      return
+    } catch (err) {
+      alert(`Berechnung fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`)
     }
-    const { stockPlates, cutPieces, kerf, priority, grainEnabled, trimLeft, trimTop } = useStore.getState()
-    // When grain is disabled, treat all pieces as freely rotatable
-    const pieces = grainEnabled
-      ? cutPieces
-      : cutPieces.map(p => ({ ...p, grain: 'any' as const }))
-    const newPlan = computeCutPlan(stockPlates, pieces, kerf, priority, trimLeft, trimTop)
-    setPlan(newPlan)
-    if (!isDesktop) setActiveTab('diagramm')
   }
 
   // Ctrl+Enter / Cmd+Enter computes from anywhere
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canCompute) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canCompute && !computing) {
         e.preventDefault()
         handleCompute()
       }
@@ -90,6 +93,7 @@ export default function App() {
   })
 
   function handleProjectChange() {
+    cancel()
     setPlan(null)
     setLinearPlan(null)
   }
@@ -102,8 +106,8 @@ export default function App() {
     </>
   )
   const diagramContent = is1d
-    ? (linearPlan ? <LinearDiagram plan={linearPlan} kerf={kerf} trimStart={linearTrim} /> : <EmptyDiagramState text="Füge Stangen und Teile hinzu, dann klicke Berechnen" />)
-    : (plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} highlight={highlight} onHighlight={onHighlight} /> : <EmptyDiagramState text="Füge Platten und Stücke hinzu, dann klicke Berechnen" />)
+    ? (linearPlan ? <LinearDiagram plan={linearPlan} kerf={kerf} trimStart={linearTrim} /> : <EmptyDiagramState text={computing ? 'Berechnung läuft …' : 'Füge Stangen und Teile hinzu, dann klicke Berechnen'} />)
+    : (plan ? <DiagramPanel plan={plan} kerf={kerf} trimLeft={trimLeft} trimTop={trimTop} highlight={highlight} onHighlight={onHighlight} /> : <EmptyDiagramState text={computing ? 'Berechnung läuft …' : 'Füge Platten und Stücke hinzu, dann klicke Berechnen'} />)
   const resultsContent = is1d
     ? (linearPlan ? <LinearResults plan={linearPlan} kerf={kerf} /> : <EmptyResultsState />)
     : (plan ? <ResultsPanel plan={plan} kerf={kerf} highlight={highlight} onHighlight={onHighlight} /> : <EmptyResultsState />)
@@ -115,7 +119,7 @@ export default function App() {
     return (
       <>
       <div className="h-screen overflow-hidden flex flex-col print:hidden">
-        <Header onCompute={handleCompute} canCompute={canCompute} onProjectChange={handleProjectChange} />
+        <Header onCompute={handleCompute} canCompute={canCompute} computing={computing} onCancel={cancel} onProjectChange={handleProjectChange} />
         <div className="grid grid-cols-[420px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
             {inputPanel}
@@ -136,7 +140,7 @@ export default function App() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col print:hidden">
-      <Header onCompute={handleCompute} canCompute={canCompute} onProjectChange={handleProjectChange} />
+      <Header onCompute={handleCompute} canCompute={canCompute} computing={computing} onCancel={cancel} onProjectChange={handleProjectChange} />
       <div className="h-[calc(100vh-52px-48px)] overflow-hidden">
         {activeTab === 'eingabe' && (
           <div className="h-full overflow-y-auto bg-white">

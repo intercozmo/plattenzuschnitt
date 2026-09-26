@@ -7,6 +7,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/plattenzuschnitt/',
+  // Module worker output, matches `new Worker(..., { type: 'module' })` in useComputeWorker
+  worker: { format: 'es' },
   plugins: [
     react(),
     tailwindcss(),
