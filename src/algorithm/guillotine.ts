@@ -28,23 +28,22 @@ function fitsOnStock(piece: CutPiece, stock: StockPlate): boolean {
   return false
 }
 
-function countNodes(node: CutNode): number {
-  let count = 1
-  if (node.children) {
-    for (const child of node.children) count += countNodes(child)
-  }
-  return count
-}
-
 // ---------------------------------------------------------------------------
-// Panel placement result
+// Guillotine search
+//
+// Places the first piece (in sort order) that fits at the panel origin, then
+// recursively fills the two remaining sub-panels. Both orientations of that
+// piece are tried; for each, both split strategies are compared at shallow
+// depths, deeper down one split is chosen heuristically:
+//   Horizontal-first: cut at piece height, fill right strip then bottom strip
+//   Vertical-first:   cut at piece width, fill bottom strip then right strip
+//
+// The search works on list positions and relative coordinates and only builds
+// Placement / CutNode objects for the final result. Identical subproblems
+// (same panel size, same sequence of piece types, same depth class) are
+// memoized; they occur very often because the two orientations and split
+// strategies re-explore the same remainders.
 // ---------------------------------------------------------------------------
-
-interface PanelResult {
-  placements: Placement[]
-  cutNode: CutNode | null
-  placedArea: number
-}
 
 const MAX_DEPTH = 100
 // At shallow depths we compare both split strategies (horizontal-first vs
@@ -52,19 +51,175 @@ const MAX_DEPTH = 100
 // simple heuristic to choose ONE split, cutting the branching factor in half.
 const SPLIT_COMPARE_DEPTH = 3
 
-// ---------------------------------------------------------------------------
-// Greedy guillotine placement (single-pass, no backtracking)
-//
-// Places the best-fitting piece at (0,0) of the panel, then recursively fills
-// the two remaining sub-panels.  "Best-fitting" = largest piece that fits,
-// ensuring O(n log n) per level (no combinatorial explosion).
-//
-// Split strategies:
-//   Horizontal-first: cut at piece.height, fill right strip then bottom strip
-//   Vertical-first:   cut at piece.width, fill bottom strip then right strip
-//
-// We try both splits for the chosen piece and pick the one with the better score.
-// ---------------------------------------------------------------------------
+// Result of a (sub-)panel search. `placed` holds positions in the input list
+// in placement order; the tree refers to entries of `placed` by index, so a
+// memoized result can be reused for any list with the same type sequence.
+interface SearchResult {
+  placed: number[]
+  area: number        // placed piece area
+  tree: TreeNode | null
+  reach: number       // deepest recursion level used below this call
+}
+
+interface TreeNode {
+  direction: 'horizontal' | 'vertical'
+  position: number
+  panelWidth: number
+  panelHeight: number
+  rotated: boolean
+  // Sub-panels: offset relative to this panel and index offset into `placed`
+  children: Array<{ node: TreeNode; ox: number; oy: number; k: number }>
+}
+
+const EMPTY: SearchResult = { placed: [], area: 0, tree: null, reach: 0 }
+
+interface SearchContext {
+  pieces: CutPiece[]        // sorted by the priority's order
+  typeCode: string[]        // one char per piece: same char = same width/height/rotatability
+  kerf: number
+  priority: OptimizationPriority
+  memo: Map<string, SearchResult>
+}
+
+function search(ctx: SearchContext, w: number, h: number, list: number[], depth: number): SearchResult {
+  if (depth >= MAX_DEPTH) return { ...EMPTY, reach: 0 }
+  if (w <= 0 || h <= 0 || list.length === 0) return EMPTY
+
+  const depthClass = depth < SPLIT_COMPARE_DEPTH ? depth : SPLIT_COMPARE_DEPTH
+  // Key: panel size, depth class and the run-length encoded type sequence
+  let key = `${w},${h},${depthClass}`
+  for (let pos = 0; pos < list.length;) {
+    const code = ctx.typeCode[list[pos]]
+    let run = 1
+    while (pos + run < list.length && ctx.typeCode[list[pos + run]] === code) run++
+    key += code + run
+    pos += run
+  }
+  const cached = ctx.memo.get(key)
+  if (cached && depth + cached.reach < MAX_DEPTH) {
+    return cached.placed.length === 0 ? cached : { ...cached, placed: cached.placed.map(pos => list[pos]) }
+  }
+
+  const result = searchUncached(ctx, w, h, list, depth)
+  // Store with list positions; skip if the depth limit cut the search short
+  if (depth + result.reach < MAX_DEPTH) {
+    const posOf = new Map(list.map((idx, pos) => [idx, pos]))
+    ctx.memo.set(key, { ...result, placed: result.placed.map(idx => posOf.get(idx)!) })
+  }
+  return result
+}
+
+function searchUncached(ctx: SearchContext, panelWidth: number, panelHeight: number, list: number[], depth: number): SearchResult {
+  const { pieces, kerf, priority } = ctx
+
+  // First piece (in sort order) that fits, with its possible orientations
+  let chosenPos = -1
+  const orientations: Array<{ pw: number; ph: number; rotated: boolean }> = []
+  for (let pos = 0; pos < list.length; pos++) {
+    const piece = pieces[list[pos]]
+    if (piece.width <= panelWidth && piece.height <= panelHeight) {
+      orientations.push({ pw: piece.width, ph: piece.height, rotated: false })
+    }
+    // Avoid duplicate orientation when width === height
+    if (canRotate(piece) && piece.height <= panelWidth && piece.width <= panelHeight && piece.width !== piece.height) {
+      orientations.push({ pw: piece.height, ph: piece.width, rotated: true })
+    }
+    if (orientations.length > 0) {
+      chosenPos = pos
+      break
+    }
+  }
+  if (chosenPos < 0) return EMPTY
+
+  const chosen = list[chosenPos]
+  const remaining = list.filter((_, pos) => pos !== chosenPos)
+  const panelArea = panelWidth * panelHeight
+  let best: SearchResult | null = null
+  let bestScore = -Infinity
+  let reach = 0
+
+  // Fills sub-panel A, then sub-panel B with the pieces A did not use
+  const fillTwo = (
+    aW: number, aH: number, aX: number, aY: number,
+    bW: number, bH: number, bX: number, bY: number,
+    direction: 'horizontal' | 'vertical', position: number, pw: number, ph: number, rotated: boolean,
+  ) => {
+    const a = aW > 0 && aH > 0 ? search(ctx, aW, aH, remaining, depth + 1) : EMPTY
+    const usedInA = new Set(a.placed)
+    const forB = a.placed.length > 0 ? remaining.filter(i => !usedInA.has(i)) : remaining
+    const b = bW > 0 && bH > 0 ? search(ctx, bW, bH, forB, depth + 1) : EMPTY
+    reach = Math.max(reach, aW > 0 && aH > 0 ? a.reach + 1 : 0, bW > 0 && bH > 0 ? b.reach + 1 : 0)
+
+    const area = pw * ph + a.area + b.area
+    const placed = [chosen, ...a.placed, ...b.placed]
+    const children: TreeNode['children'] = []
+    if (a.tree) children.push({ node: a.tree, ox: aX, oy: aY, k: 1 })
+    if (b.tree) children.push({ node: b.tree, ox: bX, oy: bY, k: 1 + a.placed.length })
+
+    // Every cut node places one piece, so the cut count equals the piece count
+    const score = scoreResult(area, panelArea, placed.length, priority)
+    if (score > bestScore) {
+      bestScore = score
+      best = { placed, area, reach: 0, tree: { direction, position, panelWidth, panelHeight, rotated, children } }
+    }
+  }
+
+  for (const { pw, ph, rotated } of orientations) {
+    // At deeper levels, pick a single split heuristically to halve the branching.
+    // Use horizontal-first when the remaining bottom strip is larger,
+    // vertical-first when the remaining right strip is larger.
+    const bottomStrip = panelWidth * (panelHeight - ph - kerf)
+    const rightStrip = (panelWidth - pw - kerf) * panelHeight
+    const tryBoth = depth < SPLIT_COMPARE_DEPTH
+    // Horizontal-first: right strip (panelWidth - pw - kerf) × ph, then bottom strip panelWidth × (panelHeight - ph - kerf)
+    if (tryBoth || bottomStrip >= rightStrip) {
+      fillTwo(
+        panelWidth - pw - kerf, ph, pw + kerf, 0,
+        panelWidth, panelHeight - ph - kerf, 0, ph + kerf,
+        'horizontal', ph, pw, ph, rotated,
+      )
+    }
+    // Vertical-first: bottom strip pw × (panelHeight - ph - kerf), then right strip (panelWidth - pw - kerf) × panelHeight
+    if (tryBoth || rightStrip > bottomStrip) {
+      fillTwo(
+        pw, panelHeight - ph - kerf, 0, ph + kerf,
+        panelWidth - pw - kerf, panelHeight, pw + kerf, 0,
+        'vertical', pw, pw, ph, rotated,
+      )
+    }
+  }
+
+  return { ...best!, reach }
+}
+
+// Builds Placement / CutNode objects for a search result at an absolute offset
+function materialize(
+  ctx: SearchContext, result: SearchResult, offsetX: number, offsetY: number,
+): { placements: Placement[]; cutNode: CutNode | null } {
+  const placements: Placement[] = []
+  const build = (node: TreeNode, x: number, y: number, k: number): CutNode => {
+    const placement: Placement = { piece: ctx.pieces[result.placed[k]], x, y, rotated: node.rotated }
+    placements[k] = placement
+    const children = node.children.map(c => build(c.node, x + c.ox, y + c.oy, k + c.k))
+    return {
+      direction: node.direction,
+      position: node.position,
+      panelWidth: node.panelWidth,
+      panelHeight: node.panelHeight,
+      piece: placement,
+      children: children.length > 0 ? children : undefined,
+    }
+  }
+  const cutNode = result.tree ? build(result.tree, offsetX, offsetY, 0) : null
+  return { placements, cutNode }
+}
+
+function sortForPriority(pieces: CutPiece[], priority: OptimizationPriority): CutPiece[] {
+  // For 'least-cuts', prefer tall pieces (shelf rows); otherwise area-descending
+  return priority === 'least-cuts'
+    ? [...pieces].sort((a, b) => b.height - a.height)
+    : [...pieces].sort((a, b) => b.width * b.height - a.width * a.height)
+}
 
 function placeOnPanel(
   panelWidth: number,
@@ -74,171 +229,26 @@ function placeOnPanel(
   pieces: CutPiece[],
   kerf: number,
   priority: OptimizationPriority,
-  depth = 0,
-): PanelResult {
-  if (depth >= MAX_DEPTH) {
-    return { placements: [], cutNode: null, placedArea: 0 }
-  }
-
-  if (panelWidth <= 0 || panelHeight <= 0 || pieces.length === 0) {
-    return { placements: [], cutNode: null, placedArea: 0 }
-  }
-
-  // Sort pieces: for 'least-cuts', prefer tall pieces (shelf rows); otherwise area-descending
-  const sorted = priority === 'least-cuts'
-    ? [...pieces].sort((a, b) => b.height - a.height)
-    : [...pieces].sort((a, b) => b.width * b.height - a.width * a.height)
-
-  // --- Greedy: find the FIRST piece that fits (best from sort order) ---
-  // We only try orientations for this one piece, then compare the two split
-  // strategies.  This keeps the recursion tree linear in piece count.
-  let chosenPiece: CutPiece | null = null
-  const fittingOrientations: Array<{ pw: number; ph: number; rotated: boolean }> = []
-
-  for (const piece of sorted) {
-    const orients: Array<{ pw: number; ph: number; rotated: boolean }> = []
-    if (piece.width <= panelWidth && piece.height <= panelHeight) {
-      orients.push({ pw: piece.width, ph: piece.height, rotated: false })
-    }
-    if (canRotate(piece) && piece.height <= panelWidth && piece.width <= panelHeight) {
-      // Avoid duplicate orientation when width === height
-      if (piece.width !== piece.height) {
-        orients.push({ pw: piece.height, ph: piece.width, rotated: true })
-      }
-    }
-    if (orients.length > 0) {
-      chosenPiece = piece
-      fittingOrientations.push(...orients)
-      break
-    }
-  }
-
-  if (!chosenPiece) {
-    return { placements: [], cutNode: null, placedArea: 0 }
-  }
-
-  // Remove the chosen piece from the list for sub-panel recursion
-  const chosenIdx = sorted.indexOf(chosenPiece)
-  const remaining = [...sorted]
-  remaining.splice(chosenIdx, 1)
-
-  const panelArea = panelWidth * panelHeight
-  let bestResult: PanelResult | null = null
-  let bestScore = -Infinity
-
-  for (const { pw, ph, rotated } of fittingOrientations) {
-    const placement: Placement = { piece: chosenPiece, x: offsetX, y: offsetY, rotated }
-
-    // At deeper levels, pick a single split heuristically to halve the branching.
-    // Use horizontal-first when the remaining bottom strip is larger,
-    // vertical-first when the remaining right strip is larger.
-    // Always try at least one split.
-    const bottomStrip = panelWidth * (panelHeight - ph - kerf)
-    const rightStrip = (panelWidth - pw - kerf) * panelHeight
-    const tryBoth = depth < SPLIT_COMPARE_DEPTH
-    const tryHorizontal = tryBoth || bottomStrip >= rightStrip
-    const tryVertical = tryBoth || rightStrip > bottomStrip
-
-    // --- Split A: Horizontal-first ---
-    // Horizontal cut at ph separates:
-    //   - Right strip: (panelWidth - pw - kerf) × ph
-    //   - Bottom strip: panelWidth × (panelHeight - ph - kerf)
-    if (tryHorizontal) {
-      const rightW = panelWidth - pw - kerf
-      const rightH = ph
-      const bottomW = panelWidth
-      const bottomH = panelHeight - ph - kerf
-
-      const rightResult = rightW > 0 && rightH > 0
-        ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, remaining, kerf, priority, depth + 1)
-        : { placements: [], cutNode: null, placedArea: 0 }
-
-      const placedInRight = new Set(rightResult.placements.map(p => p.piece))
-      const forBottom = remaining.filter(p => !placedInRight.has(p))
-
-      const bottomResult = bottomW > 0 && bottomH > 0
-        ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, forBottom, kerf, priority, depth + 1)
-        : { placements: [], cutNode: null, placedArea: 0 }
-
-      const allPlacements = [placement, ...rightResult.placements, ...bottomResult.placements]
-      const totalPlaced = pw * ph + rightResult.placedArea + bottomResult.placedArea
-
-      const children: CutNode[] = []
-      if (rightResult.cutNode) children.push(rightResult.cutNode)
-      if (bottomResult.cutNode) children.push(bottomResult.cutNode)
-
-      const cutNode: CutNode = {
-        direction: 'horizontal',
-        position: ph,
-        panelWidth,
-        panelHeight,
-        piece: placement,
-        children: children.length > 0 ? children : undefined,
-      }
-
-      const score = scoreResult(totalPlaced, panelArea, cutNode, priority)
-      if (score > bestScore) {
-        bestScore = score
-        bestResult = { placements: allPlacements, cutNode, placedArea: totalPlaced }
-      }
-    }
-
-    // --- Split B: Vertical-first ---
-    // Vertical cut at pw separates:
-    //   - Bottom strip: pw × (panelHeight - ph - kerf)
-    //   - Right strip: (panelWidth - pw - kerf) × panelHeight
-    if (tryVertical) {
-      const bottomW = pw
-      const bottomH = panelHeight - ph - kerf
-      const rightW = panelWidth - pw - kerf
-      const rightH = panelHeight
-
-      const bottomResult = bottomW > 0 && bottomH > 0
-        ? placeOnPanel(bottomW, bottomH, offsetX, offsetY + ph + kerf, remaining, kerf, priority, depth + 1)
-        : { placements: [], cutNode: null, placedArea: 0 }
-
-      const placedInBottom = new Set(bottomResult.placements.map(p => p.piece))
-      const forRight = remaining.filter(p => !placedInBottom.has(p))
-
-      const rightResult = rightW > 0 && rightH > 0
-        ? placeOnPanel(rightW, rightH, offsetX + pw + kerf, offsetY, forRight, kerf, priority, depth + 1)
-        : { placements: [], cutNode: null, placedArea: 0 }
-
-      const allPlacements = [placement, ...bottomResult.placements, ...rightResult.placements]
-      const totalPlaced = pw * ph + bottomResult.placedArea + rightResult.placedArea
-
-      const children: CutNode[] = []
-      if (bottomResult.cutNode) children.push(bottomResult.cutNode)
-      if (rightResult.cutNode) children.push(rightResult.cutNode)
-
-      const cutNode: CutNode = {
-        direction: 'vertical',
-        position: pw,
-        panelWidth,
-        panelHeight,
-        piece: placement,
-        children: children.length > 0 ? children : undefined,
-      }
-
-      const score = scoreResult(totalPlaced, panelArea, cutNode, priority)
-      if (score > bestScore) {
-        bestScore = score
-        bestResult = { placements: allPlacements, cutNode, placedArea: totalPlaced }
-      }
-    }
-  }
-
-  return bestResult!
+): { placements: Placement[]; cutNode: CutNode | null } {
+  const sorted = sortForPriority(pieces, priority)
+  const codes = new Map<string, string>()
+  const typeCode = sorted.map(p => {
+    const type = `${p.width}x${p.height}${canRotate(p) ? 'r' : ''}`
+    if (!codes.has(type)) codes.set(type, String.fromCharCode(0x100 + codes.size))
+    return codes.get(type)!
+  })
+  const ctx: SearchContext = { pieces: sorted, typeCode, kerf, priority, memo: new Map() }
+  const result = search(ctx, panelWidth, panelHeight, sorted.map((_, i) => i), 0)
+  return materialize(ctx, result, offsetX, offsetY)
 }
 
 function scoreResult(
   placedArea: number,
   panelArea: number,
-  cutNode: CutNode,
+  cutCount: number,
   priority: OptimizationPriority,
 ): number {
   const areaRatio = panelArea > 0 ? placedArea / panelArea : 0
-  const cutCount = countNodes(cutNode)
   const MAX_CUTS = 50 // normalization constant
   const cutRatio = 1 - Math.min(cutCount / MAX_CUTS, 1)
 
