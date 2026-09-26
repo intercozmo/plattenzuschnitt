@@ -189,6 +189,10 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, hi
                   Platte {idx + 1}/{plan.plates.length}:{' '}
                   {plate.stock.label ? `${plate.stock.label} ` : ''}L {plate.stock.height} × B {plate.stock.width} × D {plate.stock.thickness} mm
                   {plate.stock.material && ` · ${plate.stock.material}`}
+                  {plate.stock.grain !== 'any' && plate.placements.some(p => p.piece.grain !== 'any') &&
+                    // L is drawn horizontally for portrait plates (see CutDiagram)
+                    ` · Maserung ${plate.stock.grain === 'horizontal' ? 'längs' : 'quer'} ${
+                      (plate.stock.grain === 'horizontal') === (plate.stock.height > plate.stock.width) ? '↔' : '↕'}`}
                 </label>
               </div>
 

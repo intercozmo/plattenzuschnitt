@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { runCompute } from './computeRequest'
 import type { StockPlate, CutPiece } from '../types'
 
-const stock: StockPlate = { id: 's', label: 'S', width: 1000, height: 500, thickness: 18, grain: 'any', quantity: 1 }
-// Fits only rotated (400 wide × 900 high on a 1000 × 500 plate)
+const stock: StockPlate = { id: 's', label: 'S', width: 1000, height: 500, thickness: 18, grain: 'horizontal', quantity: 1 }
+// Fits only rotated (400 wide × 900 high on a 1000 × 500 plate); same grain as the plate forbids that
 const tall: CutPiece = { id: 'p', name: 'Hoch', width: 400, height: 900, thickness: 18, quantity: 1, grain: 'horizontal' }
 
 const base2d = { mode: '2d' as const, stockPlates: [stock], cutPieces: [tall], kerf: 3, priority: 'least-waste' as const, trimLeft: 0, trimTop: 0 }

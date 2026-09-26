@@ -2,7 +2,8 @@
 import { Fragment } from 'react'
 import type { LinearPlan } from '../types'
 import { offcutLength } from './LinearDiagram'
-import { itemLabel, sectionLabel } from '../utils/items'
+import { itemLabel, sectionLabel, describeBar } from '../utils/items'
+import ShortageNotice from './ShortageNotice'
 
 interface Props {
   plan: LinearPlan
@@ -17,6 +18,14 @@ export default function LinearResults({ plan, kerf }: Props) {
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      <ShortageNotice
+        unplacedCount={plan.unplacedParts.reduce((s, p) => s + p.quantity, 0)}
+        shortage={plan.shortage}
+        stockName="Stange"
+        describeStock={describeBar}
+        describeItem={p => `${itemLabel(p)} — ${p.length} mm${sectionLabel(p) ? ` · ${sectionLabel(p)}` : ''}`}
+        itemQuantity={p => p.quantity}
+      />
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Zusammenfassung</h2>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

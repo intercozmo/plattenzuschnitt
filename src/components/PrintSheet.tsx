@@ -1,7 +1,8 @@
 // src/components/PrintSheet.tsx
 // Workshop sheet that is only visible when printing (or "Save as PDF")
 import type { CutPlan, LinearPlan } from '../types'
-import { itemLabel } from '../utils/items'
+import { itemLabel, describePlate } from '../utils/items'
+import ShortageNotice from './ShortageNotice'
 import { useStore } from '../store'
 import { buildPieceColorMap } from './DiagramPanel'
 import CutDiagram from './CutDiagram'
@@ -24,6 +25,19 @@ export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
   return (
     <div className="print-sheet hidden print:block text-slate-800">
       <PrintHeader />
+
+      {plan.unplacedPieces.length > 0 && (
+      <div className="mb-6">
+        <ShortageNotice
+          unplacedCount={plan.unplacedPieces.reduce((s, p) => s + p.quantity, 0)}
+          shortage={plan.shortage}
+          stockName="Platte"
+          describeStock={describePlate}
+          describeItem={p => `${itemLabel(p)} — ${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`}
+          itemQuantity={p => p.quantity}
+        />
+      </div>
+      )}
 
       <div className="mb-6">
         <GlobalStats plan={plan} kerf={kerf} />

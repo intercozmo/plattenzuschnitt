@@ -1,6 +1,7 @@
 // src/components/ResultsPanel.tsx
 import { useState } from 'react'
-import { itemLabel } from '../utils/items'
+import { itemLabel, describePlate } from '../utils/items'
+import ShortageNotice from './ShortageNotice'
 import type { CutPlan } from '../types'
 import type { PieceHighlight } from '../App'
 import GlobalStats from './GlobalStats'
@@ -57,6 +58,19 @@ export default function ResultsPanel({ plan, kerf, highlight, onHighlight }: Pro
   return (
     <div className="flex flex-col gap-4 h-full p-4 overflow-hidden">
       {/* Fixed sections */}
+      {plan.unplacedPieces.length > 0 && (
+      <div className="shrink-0">
+        <ShortageNotice
+          unplacedCount={plan.unplacedPieces.reduce((s, p) => s + p.quantity, 0)}
+          shortage={plan.shortage}
+          stockName="Platte"
+          describeStock={describePlate}
+          describeItem={p => `${itemLabel(p)} — ${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`}
+          itemQuantity={p => p.quantity}
+        />
+      </div>
+      )}
+
       <div className="shrink-0">
         <GlobalStats plan={plan} kerf={kerf} />
       </div>

@@ -34,3 +34,13 @@ export function parseProfile(profile: string): { width: number; thickness: numbe
     material: m[3].trim(),
   }
 }
+
+// Short descriptions used in lists and notices
+export function describePlate(p: { label: string; height: number; width: number; thickness: number; material?: string }): string {
+  return `${p.label ? `${p.label} ` : ''}${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`
+}
+
+export function describeBar(b: { label: string; length: number; width: number; thickness: number; material: string }): string {
+  const section = sectionLabel(b)
+  return `${b.label ? `${b.label} ` : ''}L ${b.length} mm${section ? ` · ${section}` : ''}`
+}
