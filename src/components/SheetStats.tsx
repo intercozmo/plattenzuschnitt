@@ -1,5 +1,6 @@
 // src/components/SheetStats.tsx
 import type { PlacedPlate } from '../types'
+import { dims } from '../utils/items'
 
 interface Props {
   plate: PlacedPlate
@@ -10,7 +11,7 @@ export default function SheetStats({ plate, plateNumber }: Props) {
   return (
     <div className="border-b border-slate-100 pb-2 last:border-b-0 last:pb-0">
       <div className="text-xs font-medium text-slate-600 mb-1">
-        Platte {plateNumber}: {plate.stock.width}×{plate.stock.height} mm
+        Platte {plateNumber}: {dims(plate.stock.width, plate.stock.height)}
         {plate.stock.label ? ` — ${plate.stock.label}` : ''}
       </div>
       <div className="flex gap-4 text-xs text-slate-500">

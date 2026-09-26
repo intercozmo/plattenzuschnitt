@@ -254,13 +254,36 @@ describe('generateCutSequence', () => {
     expect(steps.length).toBeGreaterThan(0)
   })
 
-  it('returns empty array for a plate with only one piece', () => {
+  it('lists the cut and both offcuts for a plate with only one piece', () => {
     const pieces: CutPiece[] = [
       { id: 'a', name: 'A', width: 600, height: 400, thickness: 18, quantity: 1, grain: 'any' }
     ]
     const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces)
     const steps = generateCutSequence(plan.plates[0])
-    expect(steps).toHaveLength(0)
+    expect(steps.filter(s => s.pieceName === 'A')).toHaveLength(1)
+    expect(steps.filter(s => s.pieceName?.startsWith('Rest '))).toHaveLength(2)
+  })
+
+  it('pieces and offcuts cover the whole plate without kerf', () => {
+    const sizes = [[720, 560], [800, 500], [400, 300], [150, 700]]
+    const pieces: CutPiece[] = sizes.map(([h, w], i) => ({ id: 'p' + i, name: 'P' + i, width: w, height: h, thickness: 18, quantity: 3, grain: 'any' }))
+    for (const priority of ['least-waste', 'least-cuts', 'balanced'] as const) {
+      const plan = computeCutPlan([{ ...plate2440, quantity: 5 }], pieces, 0, priority)
+      for (const plate of plan.plates) {
+        const area = generateCutSequence(plate).reduce((s, st) => s + st.itemWidth! * st.itemHeight!, 0)
+        expect(area).toBe(plate.stock.width * plate.stock.height)
+      }
+    }
+  })
+
+  it('offcuts exclude the kerf', () => {
+    const plan = computeCutPlan([{ ...plate2440, quantity: 1 }], [{ id: 'a', name: 'A', width: 600, height: 400, thickness: 18, quantity: 1, grain: 'any' }], 4)
+    const steps = generateCutSequence(plan.plates[0])
+    const area = steps.reduce((s, st) => s + st.itemWidth! * st.itemHeight!, 0)
+    const plateArea = 2440 * 1220
+    // plate = piece + offcuts + two kerf strips
+    expect(plateArea - area).toBeGreaterThan(0)
+    expect(plateArea - area).toBeLessThanOrEqual(4 * (2440 + 1220))
   })
 
   it('cut sequence steps have correct direction and positive position', () => {
@@ -296,7 +319,7 @@ describe('generateCutSequence', () => {
     expect(restSteps.length).toBeGreaterThan(0)
     // Rest label should contain dimensions in the format "Rest WxH mm"
     for (const step of restSteps) {
-      expect(step.pieceName).toMatch(/^Rest \d+×\d+ mm$/)
+      expect(step.pieceName).toMatch(/^Rest \d+\.\d × \d+\.\d mm$/)
     }
   })
 })
@@ -337,4 +360,17 @@ describe('performance', () => {
     expect(plan.unplacedPieces).toEqual([])
     expect(plan.plates).toHaveLength(28)
   }, 30000)
+})
+
+describe('cut sequence item sizes', () => {
+  it('reports the size of every piece and offcut for pricing', () => {
+    const plan = computeCutPlan([{ ...plate2440, quantity: 1 }], [{ id: 'a', name: 'A', width: 600, height: 400, thickness: 18, quantity: 2, grain: 'any' }], 3)
+    const steps = generateCutSequence(plan.plates[0])
+    for (const s of steps) {
+      expect(s.itemWidth).toBeGreaterThan(0)
+      expect(s.itemHeight).toBeGreaterThan(0)
+    }
+    const pieces = steps.filter(s => !s.pieceName?.startsWith('Rest '))
+    expect(pieces.every(s => s.itemWidth! * s.itemHeight! === 600 * 400)).toBe(true)
+  })
 })

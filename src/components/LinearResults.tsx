@@ -2,7 +2,7 @@
 import { Fragment } from 'react'
 import type { LinearPlan } from '../types'
 import { offcutLength } from './LinearDiagram'
-import { itemLabel, sectionLabel, describeBar, stockValue, formatEuro } from '../utils/items'
+import { itemLabel, sectionLabel, describeBar, stockValue, formatEuro, mm, sharePrice } from '../utils/items'
 import ShortageNotice from './ShortageNotice'
 
 interface Props {
@@ -12,7 +12,11 @@ interface Props {
 
 export default function LinearResults({ plan, kerf }: Props) {
   const totalAvailable = plan.bars.length + plan.unusedStock.reduce((s, u) => s + u.quantity, 0)
-  const totalLengthM = plan.bars.reduce((s, b) => s + b.stock.length, 0) / 1000
+  const totalLength = plan.bars.reduce((s, b) => s + b.stock.length, 0)
+  // Price share per part/offcut (by length) when bars have a price
+  const showPrice = plan.bars.some(b => (b.stock.price ?? 0) > 0)
+  const priceOf = (bar: LinearPlan['bars'][number], length: number) =>
+    (bar.stock.price ?? 0) > 0 ? formatEuro(sharePrice(bar.stock.price!, bar.stock.length, length)) : ''
   const totalCuts = plan.bars.reduce((s, b) => s + b.cuts, 0)
   const materialCost = plan.bars.reduce((s, b) => s + (b.stock.price ?? 0), 0)
   // Stock value = bars used + bars left over
@@ -26,7 +30,7 @@ export default function LinearResults({ plan, kerf }: Props) {
         stockName="Stange"
         describeStock={describeBar}
         stockPrice={b => b.price ?? 0}
-        describeItem={p => `${itemLabel(p)} — ${p.length} mm${sectionLabel(p) ? ` · ${sectionLabel(p)}` : ''}`}
+        describeItem={p => `${itemLabel(p)} — ${mm(p.length)} mm${sectionLabel(p) ? ` · ${sectionLabel(p)}` : ''}`}
         itemQuantity={p => p.quantity}
       />
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
@@ -36,7 +40,7 @@ export default function LinearResults({ plan, kerf }: Props) {
           <dd className="text-slate-800 font-medium text-right">{plan.bars.length} / {totalAvailable} Stück</dd>
 
           <dt className="text-slate-500">Gesamtlänge</dt>
-          <dd className="text-slate-800 font-medium text-right">{totalLengthM.toFixed(2)} m</dd>
+          <dd className="text-slate-800 font-medium text-right">{mm(totalLength)} mm</dd>
 
           <dt className="text-slate-500">Gesamtschnitte</dt>
           <dd className="text-slate-800 font-medium text-right">{totalCuts}</dd>
@@ -75,7 +79,7 @@ export default function LinearResults({ plan, kerf }: Props) {
           <ul className="space-y-1">
             {plan.unplacedParts.map(part => (
               <li key={part.id} className="text-sm text-red-600">
-                {itemLabel(part)} — {part.length} mm{sectionLabel(part) && ` (${sectionLabel(part)})`}
+                {itemLabel(part)} — {mm(part.length)} mm{sectionLabel(part) && ` (${sectionLabel(part)})`}
                 {part.quantity > 1 && ` ${part.quantity}×`}
               </li>
             ))}
@@ -92,6 +96,7 @@ export default function LinearResults({ plan, kerf }: Props) {
               <th className="text-left py-1 px-2 text-slate-400 font-medium">Teil</th>
               <th className="text-right py-1 px-2 text-slate-400 font-medium">Länge</th>
               <th className="text-right py-1 px-2 text-slate-400 font-medium">Schnitt bei</th>
+              {showPrice && <th className="text-right py-1 px-2 text-slate-400 font-medium">Preis</th>}
             </tr>
           </thead>
           <tbody>
@@ -100,8 +105,8 @@ export default function LinearResults({ plan, kerf }: Props) {
               return (
                 <Fragment key={`${bar.stock.id}-${bar.barIndex}`}>
                   <tr className="bg-slate-50">
-                    <td colSpan={4} className="py-1 px-2 text-slate-500 font-medium">
-                      Stange {i + 1}: {bar.stock.length} mm{sectionLabel(bar.stock) && ` · ${sectionLabel(bar.stock)}`}
+                    <td colSpan={showPrice ? 5 : 4} className="py-1 px-2 text-slate-500 font-medium">
+                      Stange {i + 1}: {mm(bar.stock.length)} mm{sectionLabel(bar.stock) && ` · ${sectionLabel(bar.stock)}`}
                       {bar.stock.label ? ` — ${bar.stock.label}` : ''}
                     </td>
                   </tr>
@@ -109,14 +114,16 @@ export default function LinearResults({ plan, kerf }: Props) {
                     <tr key={j} className="border-b border-slate-50">
                       <td className="py-1 px-2 text-slate-400">{j + 1}</td>
                       <td className="py-1 px-2 text-slate-600">{itemLabel(p.part)}</td>
-                      <td className="py-1 px-2 text-slate-600 text-right">{p.part.length} mm</td>
-                      <td className="py-1 px-2 text-blue-600 text-right">{p.offset + p.part.length} mm</td>
+                      <td className="py-1 px-2 text-slate-600 text-right whitespace-nowrap">{mm(p.part.length)} mm</td>
+                      <td className="py-1 px-2 text-blue-600 text-right whitespace-nowrap">{mm(p.offset + p.part.length)} mm</td>
+                      {showPrice && <td className="py-1 px-2 text-slate-600 text-right whitespace-nowrap">{priceOf(bar, p.part.length)}</td>}
                     </tr>
                   ))}
                   {offcut > 0 && (
                     <tr className="border-b border-slate-50">
                       <td />
-                      <td className="py-1 px-2 text-rose-600" colSpan={3}>Rest {offcut} mm</td>
+                      <td className="py-1 px-2 text-rose-600" colSpan={3}>Rest {mm(offcut)} mm</td>
+                      {showPrice && <td className="py-1 px-2 text-rose-600 text-right whitespace-nowrap">{priceOf(bar, offcut)}</td>}
                     </tr>
                   )}
                 </Fragment>

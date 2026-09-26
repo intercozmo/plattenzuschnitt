@@ -3,7 +3,7 @@ import { useId, useRef, useState } from 'react'
 import type { PlacedPlate, CutPiece, Placement } from '../types'
 import type { PieceHighlight } from '../App'
 import { useResizeObserver } from '../hooks/useResizeObserver'
-import { itemLabel } from '../utils/items'
+import { itemLabel, mm, dims } from '../utils/items'
 
 interface Props {
   plate: PlacedPlate
@@ -202,7 +202,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                       textAnchor="middle" fontSize={40} fill="#be185d">Rest</text>
                     <text x={x + w / 2} y={y + h / 2 + 30}
                       textAnchor="middle" fontSize={34} fill="#db2777">
-                      {w}×{h}
+                      {mm(w)}×{mm(h)}
                     </text>
                   </>
                 )}
@@ -242,12 +242,12 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                       <text x={cx} y={cy + 30}
                         textAnchor="middle" fontSize={40} fill="#334155"
                         transform={rot}>
-                        {dw}×{dh}
+                        {mm(dw)}×{mm(dh)}
                       </text>
                       {dw > 80 && (
                         <text x={cx} y={dy + dh - 10}
                           textAnchor="middle" fontSize={28} fill="#1e293b">
-                          {dw} mm
+                          {mm(dw)} mm
                         </text>
                       )}
                       {dh > 80 && (
@@ -255,7 +255,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                           x={dx + dw - 10} y={cy}
                           textAnchor="middle" fontSize={28} fill="#1e293b"
                           transform={`rotate(-90, ${dx + dw - 10}, ${cy})`}>
-                          {dh} mm
+                          {mm(dh)} mm
                         </text>
                       )}
                     </>
@@ -375,7 +375,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
           {/* L dimension annotation (bottom) — text centered on line */}
           {(() => {
             const ly = svgH + 55
-            const labelText = `L ${svgW}`
+            const labelText = `L ${mm(svgW)}`
             const textW = labelText.length * 20
             const gapStart = svgW / 2 - textW / 2
             const gapEnd = svgW / 2 + textW / 2
@@ -399,7 +399,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
           {/* B dimension annotation (right) — text centered on line, rotated -90° */}
           {(() => {
             const bx = svgW + 55
-            const labelText = `B ${svgH}`
+            const labelText = `B ${mm(svgH)}`
             const textW = labelText.length * 20
             const gapStart = svgH / 2 - textW / 2
             const gapEnd = svgH / 2 + textW / 2
@@ -432,7 +432,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
       {tooltip && (
         <div className="absolute top-2 left-2 bg-slate-800 text-white text-sm rounded px-3 py-2 z-10">
           <strong>{itemLabel(tooltip.piece)}</strong>{tooltip.piece.material && ` · ${tooltip.piece.material}`}<br />
-          {tooltip.piece.width}×{tooltip.piece.height} mm
+          {dims(tooltip.piece.width, tooltip.piece.height)}
         </div>
       )}
     </div>

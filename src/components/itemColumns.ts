@@ -1,6 +1,10 @@
 // src/components/itemColumns.ts
 import type { Column } from './InlineTable'
 import { parseCsv, type CsvRow } from '../utils/csvImport'
+import { mm } from '../utils/items'
+
+// Dimensions are shown in mm with one decimal and accept decimal input
+const dimension = { format: (v: unknown) => mm(Number(v) || 0), step: '0.1' }
 
 // Table columns of plates, pieces, bars and parts. The order matches the CSV /
 // timber list format, so exported files re-import and pasted rows land in the
@@ -11,9 +15,9 @@ export function itemColumns(opts: { grain?: boolean; price?: boolean } = {}): Co
     { key: 'name',      label: 'Name',        type: 'text',   sortable: true, csvLabel: 'Bezeichnung' },
     { key: 'material',  label: 'Material',    type: 'text',   width: '64px', sortable: true },
     { key: 'quantity',  label: 'Anz',         type: 'number', width: '36px', sortable: true, csvLabel: 'Anzahl' },
-    { key: 'width',     label: 'B',           type: 'number', width: '44px', sortable: true, csvLabel: 'Breite' },
-    { key: 'thickness', label: 'D',           type: 'number', width: '36px', csvLabel: 'Dicke' },
-    { key: 'length',    label: 'L',           type: 'number', width: '48px', sortable: true, csvLabel: 'Länge' },
+    { key: 'width',     label: 'B',           type: 'number', width: '44px', sortable: true, csvLabel: 'Breite', ...dimension },
+    { key: 'thickness', label: 'D',           type: 'number', width: '36px', csvLabel: 'Dicke', ...dimension },
+    { key: 'length',    label: 'L',           type: 'number', width: '48px', sortable: true, csvLabel: 'Länge', ...dimension },
     ...(opts.grain ? [{ key: 'grain', label: 'M', type: 'grain' as const, width: '32px', csvLabel: 'Maserung' }] : []),
     ...(opts.price ? [{ key: 'price', label: '€', type: 'number' as const, width: '44px', csvLabel: 'Preis' }] : []),
   ]

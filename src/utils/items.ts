@@ -1,6 +1,21 @@
 // src/utils/items.ts
 // Shared helpers for plates, pieces, bars and parts
 
+// All dimensions are shown in mm with one decimal: "720.0"
+export function mm(value: number): string {
+  return value.toFixed(1)
+}
+
+// "720.0 × 560.0 mm"
+export function dims(...values: number[]): string {
+  return `${values.map(mm).join(' × ')} mm`
+}
+
+// Price share of a piece/offcut by area (2D) or length (1D) of its plate/bar
+export function sharePrice(stockPrice: number, stockSize: number, itemSize: number): number {
+  return stockSize > 0 ? stockPrice * itemSize / stockSize : 0
+}
+
 // Display name including the position number, e.g. "3 Sekundärlattung"
 export function itemLabel(item: { pos?: string; name: string }): string {
   return item.pos ? `${item.pos} ${item.name}`.trim() : item.name
@@ -20,8 +35,8 @@ export function dimensionMatches(a: number, b: number): boolean {
 
 // Cross-section label for 1D items, e.g. "70×45 Accoya"
 export function sectionLabel(item: { width: number; thickness: number; material: string }): string {
-  const dims = item.width > 0 && item.thickness > 0 ? `${item.width}×${item.thickness}` : ''
-  return [dims, item.material.trim()].filter(Boolean).join(' ')
+  const section = item.width > 0 && item.thickness > 0 ? `${mm(item.width)}×${mm(item.thickness)}` : ''
+  return [section, item.material.trim()].filter(Boolean).join(' ')
 }
 
 // Converts a former free-text 1D profile ("70×45 Accoya", "40x60") into fields
@@ -37,12 +52,12 @@ export function parseProfile(profile: string): { width: number; thickness: numbe
 
 // Short descriptions used in lists and notices
 export function describePlate(p: { label: string; height: number; width: number; thickness: number; material?: string }): string {
-  return `${p.label ? `${p.label} ` : ''}${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`
+  return `${p.label ? `${p.label} ` : ''}${dims(p.height, p.width, p.thickness)}${p.material ? ` · ${p.material}` : ''}`
 }
 
 export function describeBar(b: { label: string; length: number; width: number; thickness: number; material: string }): string {
   const section = sectionLabel(b)
-  return `${b.label ? `${b.label} ` : ''}L ${b.length} mm${section ? ` · ${section}` : ''}`
+  return `${b.label ? `${b.label} ` : ''}L ${dims(b.length)}${section ? ` · ${section}` : ''}`
 }
 
 // Total value of stock entries (quantity × price per piece)

@@ -1,5 +1,6 @@
 // src/components/DiagramPanel.tsx
 import { useState, useRef, useMemo } from 'react'
+import { mm } from '../utils/items'
 import { COLOR_PALETTE } from '../constants'
 import CutDiagram from './CutDiagram'
 import type { CutPlan, PlacedPlate } from '../types'
@@ -187,7 +188,7 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, hi
                   className="text-sm font-medium text-slate-700 cursor-pointer"
                 >
                   Platte {idx + 1}/{plan.plates.length}:{' '}
-                  {plate.stock.label ? `${plate.stock.label} ` : ''}L {plate.stock.height} × B {plate.stock.width} × D {plate.stock.thickness} mm
+                  {plate.stock.label ? `${plate.stock.label} ` : ''}L {mm(plate.stock.height)} × B {mm(plate.stock.width)} × D {mm(plate.stock.thickness)} mm
                   {plate.stock.material && ` · ${plate.stock.material}`}
                   {plate.stock.grain !== 'any' && plate.placements.some(p => p.piece.grain !== 'any') &&
                     // L is drawn horizontally for portrait plates (see CutDiagram)

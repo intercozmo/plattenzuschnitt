@@ -1,6 +1,6 @@
 // src/components/GlobalStats.tsx
 import type { CutPlan, CutNode } from '../types'
-import { stockValue, formatEuro } from '../utils/items'
+import { stockValue, formatEuro, mm } from '../utils/items'
 import { useStore } from '../store'
 
 interface Props {
@@ -41,7 +41,7 @@ export default function GlobalStats({ plan }: Props) {
   const totalCutLengthMm = plan.plates.reduce((sum, plate) => {
     return sum + (plate.cutTree ? sumCutLength(plate.cutTree) : 0)
   }, 0)
-  const totalCutLengthM = (totalCutLengthMm / 1000).toFixed(1)
+
 
   // Compute total number of cuts
   const totalCuts = plan.plates.reduce((sum, plate) => {
@@ -82,7 +82,7 @@ export default function GlobalStats({ plan }: Props) {
 
         <dt className="text-slate-500">Gesamtschnittlänge</dt>
         <dd className="text-slate-800 font-medium text-right">
-          {totalCutLengthM} m
+          {mm(totalCutLengthMm)} mm
         </dd>
 
         <dt className="text-slate-500">Gesamtschnitte</dt>

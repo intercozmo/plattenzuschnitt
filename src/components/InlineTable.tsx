@@ -8,6 +8,8 @@ export interface Column {
   width?: string
   sortable?: boolean
   csvLabel?: string   // overrides label in CSV export headers
+  format?: (value: unknown) => string  // display format (view mode)
+  step?: string        // input step for number columns
 }
 
 export interface Row {
@@ -328,6 +330,7 @@ export default function InlineTable({
                                 ref={colIndex === 0 ? firstInputRef : undefined}
                                 type={col.type === 'number' ? 'number' : 'text'}
                                 min={col.type === 'number' ? 0 : undefined}
+                                step={col.step}
                                 value={editValues[col.key] ?? ''}
                                 onChange={e => handleFieldChange(col.key, e.target.value)}
                                 onKeyDown={e => handleKeyDown(e, row.id, colIndex)}
@@ -346,7 +349,7 @@ export default function InlineTable({
                                 {grainLabel(String(row[col.key]))}
                               </button>
                             ) : (
-                              <span className="text-slate-700">{String(row[col.key] ?? '')}</span>
+                              <span className={`text-slate-700${col.type === 'number' ? ' text-xs tabular-nums' : ''}`}>{col.format ? col.format(row[col.key]) : String(row[col.key] ?? '')}</span>
                             )
                           )}
                         </td>

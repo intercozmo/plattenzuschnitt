@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { itemLabel, materialMatches, dimensionMatches, sectionLabel, parseProfile, stockValue, formatEuro } from './items'
+import { itemLabel, materialMatches, dimensionMatches, sectionLabel, parseProfile, stockValue, formatEuro, mm, dims, sharePrice } from './items'
 
 describe('item helpers', () => {
   it('prefixes the position number', () => {
@@ -21,7 +21,7 @@ describe('item helpers', () => {
   })
 
   it('formats and parses cross-sections', () => {
-    expect(sectionLabel({ width: 70, thickness: 45, material: 'Accoya' })).toBe('70×45 Accoya')
+    expect(sectionLabel({ width: 70, thickness: 45, material: 'Accoya' })).toBe('70.0×45.0 Accoya')
     expect(sectionLabel({ width: 0, thickness: 0, material: '' })).toBe('')
     expect(parseProfile('70×45 Accoya')).toEqual({ width: 70, thickness: 45, material: 'Accoya' })
     expect(parseProfile('40x60')).toEqual({ width: 40, thickness: 60, material: '' })
@@ -37,5 +37,22 @@ describe('stock value', () => {
 
   it('formats euros the German way', () => {
     expect(formatEuro(1234.5).replace(/\s/g, ' ')).toBe('1.234,50 €')
+  })
+})
+
+describe('dimensions and price shares', () => {
+  it('formats dimensions in mm with one decimal', () => {
+    expect(mm(720)).toBe('720.0')
+    expect(mm(12.55)).toBe('12.6')
+    expect(dims(2800, 2070, 18)).toBe('2800.0 × 2070.0 × 18.0 mm')
+    expect(sectionLabel({ width: 70, thickness: 45, material: 'Accoya' })).toBe('70.0×45.0 Accoya')
+  })
+
+  it('shares the stock price by area or length', () => {
+    // quarter of a 100 € plate
+    expect(sharePrice(100, 2000 * 1000, 1000 * 500)).toBe(25)
+    // 1200 mm of a 6000 mm bar at 30 €
+    expect(sharePrice(30, 6000, 1200)).toBeCloseTo(6)
+    expect(sharePrice(30, 0, 1200)).toBe(0)
   })
 })
