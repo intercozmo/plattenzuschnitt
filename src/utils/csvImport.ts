@@ -47,12 +47,40 @@ function mapGrain(value: string): 'any' | 'horizontal' | 'vertical' {
   return 'any'
 }
 
+// Timber list export ("Holzliste"): optional metadata lines like "Projektname;"
+// and no header, then rows Pos;Bezeichnung;Material;Anzahl;Breite;Dicke;Länge;Volumen.
+// Returns null if the text is not in this format.
+function parseTimberList(lines: string[]): CsvPiece[] | null {
+  const num = (cell: string) => Number(cell.replace(',', '.'))
+  const pieces: CsvPiece[] = []
+  for (const line of lines) {
+    if (line.trim() === '') continue
+    const cells = line.split(';').map(c => c.trim())
+    if (cells.length === 8 && [0, 3, 4, 5, 6].every(i => cells[i] !== '' && num(cells[i]) > 0)) {
+      pieces.push({
+        name: `${cells[0]} ${cells[1]}`.trim(),
+        width: num(cells[4]),
+        height: num(cells[6]),
+        thickness: num(cells[5]),
+        quantity: Math.round(num(cells[3])),
+        grain: 'any',
+      })
+    } else if (cells.length > 2 || !isNaN(Number(cells[0]))) {
+      return null  // neither a data row nor a metadata line
+    }
+  }
+  return pieces.length > 0 ? pieces : null
+}
+
 export function parseCsv(text: string): CsvImportResult {
   const pieces: CsvPiece[] = []
   const errors: string[] = []
 
   const sep = detectSeparator(text)
-  const lines = text.split('\n').map(l => l.trimEnd())
+  const lines = text.replace(/^\uFEFF/, '').split('\n').map(l => l.trimEnd())
+
+  const timberList = sep === ';' ? parseTimberList(lines) : null
+  if (timberList) return { pieces: timberList, errors }
 
   // Need at least a header row
   if (lines.length === 0 || lines[0].trim() === '') {

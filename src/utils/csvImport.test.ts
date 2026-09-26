@@ -87,3 +87,35 @@ describe('parseLinearCsv', () => {
     expect(r.errors).toEqual(['Zeile 2: Ungültige Länge'])
   })
 })
+
+describe('timber list export (Holzliste)', () => {
+  // Verbatim content of an exported timber list: UTF-8 BOM, CRLF, metadata lines, no header
+  const holzdeck = '\uFEFF' +
+  'Projektname;\r\n' +
+  'Projektnummer;\r\n' +
+  'Bauherr;\r\n' +
+  'Liefertermin;\r\n' +
+  '1;Sekundärlattung;Accoya;1;70;45;2480;0.01\r\n' +
+  '2;Sekundärlattung;Accoya;2;70;45;2456;0.02\r\n' +
+  '3;Sekundärlattung;Accoya;2;70;45;2376;0.01\r\n' +
+  '4;Sekundärlattung;Accoya;2;70;45;2239;0.01\r\n' +
+  '5;Sekundärlattung;Accoya;2;70;45;2169;0.01\r\n' +
+  '6;Sekundärlattung;Accoya;2;70;45;2006;0.01\r\n' +
+  '7;Sekundärlattung;Accoya;2;70;45;1644;0.01\r\n' +
+  '8;Sekundärlattung;Accoya;2;70;45;1185;0.01\r\n' +
+  '9;Sekundärlattung;Accoya;12;70;45;180;0.01\r\n'
+
+  it('reads every position as a piece', () => {
+    const r = parseCsv(holzdeck)
+    expect(r.errors).toEqual([])
+    expect(r.pieces).toHaveLength(9)
+    expect(r.pieces[0]).toEqual({ name: '1 Sekundärlattung', width: 70, height: 2480, thickness: 45, quantity: 1, grain: 'any' })
+    expect(r.pieces[8]).toEqual({ name: '9 Sekundärlattung', width: 70, height: 180, thickness: 45, quantity: 12, grain: 'any' })
+    expect(r.pieces.reduce((s, p) => s + p.quantity, 0)).toBe(27)
+  })
+
+  it('does not treat normal CSV files as timber lists', () => {
+    const r = parseCsv('1;Seite;Fichte;2;560;18;720;0.01;extra')
+    expect(r.pieces).not.toContainEqual(expect.objectContaining({ name: '1 Seite' }))
+  })
+})
