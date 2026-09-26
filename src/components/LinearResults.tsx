@@ -2,7 +2,7 @@
 import { Fragment } from 'react'
 import type { LinearPlan } from '../types'
 import { offcutLength } from './LinearDiagram'
-import { itemLabel, sectionLabel, describeBar } from '../utils/items'
+import { itemLabel, sectionLabel, describeBar, stockValue, formatEuro } from '../utils/items'
 import ShortageNotice from './ShortageNotice'
 
 interface Props {
@@ -15,6 +15,8 @@ export default function LinearResults({ plan, kerf }: Props) {
   const totalLengthM = plan.bars.reduce((s, b) => s + b.stock.length, 0) / 1000
   const totalCuts = plan.bars.reduce((s, b) => s + b.cuts, 0)
   const materialCost = plan.bars.reduce((s, b) => s + (b.stock.price ?? 0), 0)
+  // Stock value = bars used + bars left over
+  const stockTotal = materialCost + stockValue(plan.unusedStock.map(u => ({ quantity: u.quantity, price: u.stock.price })))
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -23,6 +25,7 @@ export default function LinearResults({ plan, kerf }: Props) {
         shortage={plan.shortage}
         stockName="Stange"
         describeStock={describeBar}
+        stockPrice={b => b.price ?? 0}
         describeItem={p => `${itemLabel(p)} — ${p.length} mm${sectionLabel(p) ? ` · ${sectionLabel(p)}` : ''}`}
         itemQuantity={p => p.quantity}
       />
@@ -44,9 +47,14 @@ export default function LinearResults({ plan, kerf }: Props) {
           {materialCost > 0 && (
             <>
               <dt className="text-slate-500">Materialkosten</dt>
-              <dd className="text-slate-800 font-medium text-right">
-                {materialCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-              </dd>
+              <dd className="text-slate-800 font-medium text-right">{formatEuro(materialCost)}</dd>
+            </>
+          )}
+
+          {stockTotal > 0 && (
+            <>
+              <dt className="text-slate-500">Bestandswert</dt>
+              <dd className="text-slate-800 font-medium text-right">{formatEuro(stockTotal)}</dd>
             </>
           )}
 

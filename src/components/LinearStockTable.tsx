@@ -3,6 +3,7 @@ import InlineTable, { type Row } from './InlineTable'
 import { useStore } from '../store'
 import type { StockBar } from '../types'
 import { itemColumns, csvImportConfig, text, positive, nonNegative } from './itemColumns'
+import StockValueNote from './StockValueNote'
 
 const COLUMNS = itemColumns({ price: true })
 
@@ -49,15 +50,18 @@ export default function LinearStockTable() {
   )
 
   return (
-    <InlineTable
-      columns={COLUMNS}
-      rows={rows}
-      onAdd={() => addStockBar({ pos: '', label: '', material: '', quantity: 1, width: 0, thickness: 0, length: 6000, price: 0 })}
-      onSave={handleSave}
-      onDelete={removeStockBar}
-      addLabel="+ Stange hinzufügen"
-      csvExport={{ filename: 'stangenbestand.csv' }}
-      csvImport={csvImport}
-    />
+    <>
+      <InlineTable
+        columns={COLUMNS}
+        rows={rows}
+        onAdd={() => addStockBar({ pos: '', label: '', material: '', quantity: 1, width: 0, thickness: 0, length: 6000, price: 0 })}
+        onSave={handleSave}
+        onDelete={removeStockBar}
+        addLabel="+ Stange hinzufügen"
+        csvExport={{ filename: 'stangenbestand.csv' }}
+        csvImport={csvImport}
+      />
+      <StockValueNote items={stockBars} unit={['Stange', 'Stangen']} />
+    </>
   )
 }

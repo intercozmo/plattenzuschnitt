@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { itemLabel, materialMatches, dimensionMatches, sectionLabel, parseProfile } from './items'
+import { itemLabel, materialMatches, dimensionMatches, sectionLabel, parseProfile, stockValue, formatEuro } from './items'
 
 describe('item helpers', () => {
   it('prefixes the position number', () => {
@@ -26,5 +26,16 @@ describe('item helpers', () => {
     expect(parseProfile('70×45 Accoya')).toEqual({ width: 70, thickness: 45, material: 'Accoya' })
     expect(parseProfile('40x60')).toEqual({ width: 40, thickness: 60, material: '' })
     expect(parseProfile('Rundstab')).toEqual({ width: 0, thickness: 0, material: 'Rundstab' })
+  })
+})
+
+describe('stock value', () => {
+  it('sums quantity × price and ignores missing prices', () => {
+    expect(stockValue([{ quantity: 3, price: 49.9 }, { quantity: 2 }, { quantity: 1, price: 10 }])).toBeCloseTo(159.7)
+    expect(stockValue([])).toBe(0)
+  })
+
+  it('formats euros the German way', () => {
+    expect(formatEuro(1234.5).replace(/\s/g, ' ')).toBe('1.234,50 €')
   })
 })

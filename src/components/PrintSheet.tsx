@@ -33,6 +33,7 @@ export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
           shortage={plan.shortage}
           stockName="Platte"
           describeStock={describePlate}
+          stockPrice={p => p.price ?? 0}
           describeItem={p => `${itemLabel(p)} — ${p.height} × ${p.width} × ${p.thickness} mm${p.material ? ` · ${p.material}` : ''}`}
           itemQuantity={p => p.quantity}
         />

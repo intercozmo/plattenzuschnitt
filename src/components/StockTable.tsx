@@ -3,6 +3,7 @@ import InlineTable, { type Row } from './InlineTable'
 import { useStore } from '../store'
 import type { StockPlate } from '../types'
 import { itemColumns, grainExport, csvImportConfig, text, positive, nonNegative } from './itemColumns'
+import StockValueNote from './StockValueNote'
 
 const COLUMNS = itemColumns({ grain: true, price: true })
 
@@ -57,16 +58,19 @@ export default function StockTable() {
   )
 
   return (
-    <InlineTable
-      columns={COLUMNS}
-      rows={rows}
-      onAdd={() => addStockPlate({ pos: '', label: '', material: '', quantity: 1, width: 800, thickness: 18, height: 600, grain: 'any', price: 0 })}
-      onSave={handleSave}
-      onDelete={removeStockPlate}
-      addLabel="+ Platte hinzufügen"
-      onGrainToggle={handleGrainToggle}
-      csvExport={{ filename: 'plattenbestand.csv', grainExport }}
-      csvImport={csvImport}
-    />
+    <>
+      <InlineTable
+        columns={COLUMNS}
+        rows={rows}
+        onAdd={() => addStockPlate({ pos: '', label: '', material: '', quantity: 1, width: 800, thickness: 18, height: 600, grain: 'any', price: 0 })}
+        onSave={handleSave}
+        onDelete={removeStockPlate}
+        addLabel="+ Platte hinzufügen"
+        onGrainToggle={handleGrainToggle}
+        csvExport={{ filename: 'plattenbestand.csv', grainExport }}
+        csvImport={csvImport}
+      />
+      <StockValueNote items={stockPlates} unit={['Platte', 'Platten']} />
+    </>
   )
 }
