@@ -10,54 +10,62 @@ export interface PersistedState {
   priority?: OptimizationPriority;
   trimLeft?: number;
   trimTop?: number;
+  projectName?: string;
 }
 
 export function loadState(): PersistedState | null {
   try {
     const raw = localStorage.getItem(SCHEMA_VERSION_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !Array.isArray(parsed.stockPlates) ||
-      !Array.isArray(parsed.cutPieces)
-    ) {
-      console.warn('[Plattenzuschnitt] Invalid persisted state, discarding.')
-      return null
-    }
-    const result: PersistedState = {
-      stockPlates: parsed.stockPlates.map((p: StockPlate & { thickness?: number; grain?: Grain }) => ({
-        ...p,
-        thickness: typeof p.thickness === 'number' ? p.thickness : 18, // default 18mm
-        grain: (p.grain === 'horizontal' || p.grain === 'vertical') ? p.grain : 'any',
-        price: typeof p.price === 'number' ? p.price : 0,
-      })),
-      cutPieces: parsed.cutPieces.map((p: CutPiece & { thickness?: number }) => ({
-        ...p,
-        thickness: typeof p.thickness === 'number' ? p.thickness : 18,
-      })),
-    }
-    if (typeof parsed.kerf === 'number') {
-      result.kerf = parsed.kerf
-    }
-    if (typeof parsed.grainEnabled === 'boolean') {
-      result.grainEnabled = parsed.grainEnabled
-    }
-    const validPriorities: OptimizationPriority[] = ['least-waste', 'least-cuts', 'balanced']
-    if (validPriorities.includes(parsed.priority)) {
-      result.priority = parsed.priority
-    }
-    if (typeof parsed.trimLeft === 'number') {
-      result.trimLeft = parsed.trimLeft
-    }
-    if (typeof parsed.trimTop === 'number') {
-      result.trimTop = parsed.trimTop
-    }
-    return result
+    return parsePersistedState(JSON.parse(raw))
   } catch {
     return null
   }
+}
+
+// Validates and back-fills persisted data (localStorage state and project files)
+export function parsePersistedState(parsed: any): PersistedState | null {
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    !Array.isArray(parsed.stockPlates) ||
+    !Array.isArray(parsed.cutPieces)
+  ) {
+    console.warn('[Plattenzuschnitt] Invalid persisted state, discarding.')
+    return null
+  }
+  const result: PersistedState = {
+    stockPlates: parsed.stockPlates.map((p: StockPlate & { thickness?: number; grain?: Grain }) => ({
+      ...p,
+      thickness: typeof p.thickness === 'number' ? p.thickness : 18, // default 18mm
+      grain: (p.grain === 'horizontal' || p.grain === 'vertical') ? p.grain : 'any',
+      price: typeof p.price === 'number' ? p.price : 0,
+    })),
+    cutPieces: parsed.cutPieces.map((p: CutPiece & { thickness?: number }) => ({
+      ...p,
+      thickness: typeof p.thickness === 'number' ? p.thickness : 18,
+    })),
+  }
+  if (typeof parsed.kerf === 'number') {
+    result.kerf = parsed.kerf
+  }
+  if (typeof parsed.grainEnabled === 'boolean') {
+    result.grainEnabled = parsed.grainEnabled
+  }
+  const validPriorities: OptimizationPriority[] = ['least-waste', 'least-cuts', 'balanced']
+  if (validPriorities.includes(parsed.priority)) {
+    result.priority = parsed.priority
+  }
+  if (typeof parsed.trimLeft === 'number') {
+    result.trimLeft = parsed.trimLeft
+  }
+  if (typeof parsed.trimTop === 'number') {
+    result.trimTop = parsed.trimTop
+  }
+  if (typeof parsed.projectName === 'string') {
+    result.projectName = parsed.projectName
+  }
+  return result
 }
 
 export function saveState(state: PersistedState): void {

@@ -1,6 +1,7 @@
 // src/components/PrintSheet.tsx
 // Workshop sheet that is only visible when printing (or "Save as PDF")
 import type { CutPlan } from '../types'
+import { useStore } from '../store'
 import { buildPieceColorMap } from './DiagramPanel'
 import CutDiagram from './CutDiagram'
 import GlobalStats from './GlobalStats'
@@ -16,11 +17,12 @@ interface Props {
 
 export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
   const pieceColorMap = buildPieceColorMap(plan)
+  const projectName = useStore(s => s.projectName)
 
   return (
     <div className="print-sheet hidden print:block text-slate-800">
       <div className="flex items-baseline justify-between border-b border-slate-300 pb-2 mb-4">
-        <h1 className="text-xl font-bold">Schnittplan</h1>
+        <h1 className="text-xl font-bold">Schnittplan{projectName ? ` – ${projectName}` : ''}</h1>
         <span className="text-sm text-slate-500">{new Date().toLocaleDateString('de-DE')}</span>
       </div>
 

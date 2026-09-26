@@ -81,7 +81,7 @@ export default function App() {
     return (
       <>
       <div className="h-screen overflow-hidden flex flex-col print:hidden">
-        <Header onCompute={handleCompute} canCompute={canCompute} />
+        <Header onCompute={handleCompute} canCompute={canCompute} onProjectChange={() => setPlan(null)} />
         <div className="grid grid-cols-[420px_1fr_420px] h-[calc(100vh-52px)] overflow-hidden">
           <aside className="overflow-y-auto border-r border-slate-200 bg-white">
             <InputPanel />
@@ -102,7 +102,7 @@ export default function App() {
   return (
     <>
     <div className="h-screen overflow-hidden flex flex-col print:hidden">
-      <Header onCompute={handleCompute} canCompute={canCompute} />
+      <Header onCompute={handleCompute} canCompute={canCompute} onProjectChange={() => setPlan(null)} />
       <div className="h-[calc(100vh-52px-48px)] overflow-hidden">
         {activeTab === 'eingabe' && (
           <div className="h-full overflow-y-auto bg-white">

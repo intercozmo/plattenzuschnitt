@@ -4,7 +4,7 @@ import { subscribeWithSelector } from 'zustand/middleware'
 import { shallow } from 'zustand/shallow'
 import { nanoid } from 'nanoid'
 import type { StockPlate, CutPiece, Grain, OptimizationPriority } from './types'
-import { loadState, saveState } from './persistence'
+import { loadState, saveState, type PersistedState } from './persistence'
 import { DEFAULT_KERF_MM } from './constants'
 
 interface AppState {
@@ -37,12 +37,31 @@ interface AppState {
   setTrimLeft: (v: number) => void;
   setTrimTop: (v: number) => void;
 
+  // Project actions
+  projectName: string;
+  setProjectName: (name: string) => void;
+  loadProjectData: (name: string, data: PersistedState) => void;
+
   // Phase flag: use InlineTable as the primary rendering for PiecesTable behind a feature flag
   useInlineTableForPieces: boolean;
   setUseInlineTableForPieces: (enabled: boolean) => void;
 }
 
 const persisted = loadState()
+
+// Input state that is saved to localStorage and into projects
+export function selectPersisted(state: AppState): PersistedState {
+  return {
+    stockPlates: state.stockPlates,
+    cutPieces: state.cutPieces,
+    kerf: state.kerf,
+    grainEnabled: state.grainEnabled,
+    priority: state.priority,
+    trimLeft: state.trimLeft,
+    trimTop: state.trimTop,
+    projectName: state.projectName,
+  }
+}
 
 export const useStore = create<AppState>()(
   subscribeWithSelector((set) => ({
@@ -53,6 +72,7 @@ export const useStore = create<AppState>()(
     priority: persisted?.priority ?? 'least-waste',
     trimLeft: persisted?.trimLeft ?? 0,
     trimTop: persisted?.trimTop ?? 0,
+    projectName: persisted?.projectName ?? '',
 
     addStockPlate: (label, width, height, thickness, grain, quantity, price) =>
       set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, thickness, grain, quantity, price }] })),
@@ -94,6 +114,20 @@ export const useStore = create<AppState>()(
 
     setTrimTop: (trimTop) => set({ trimTop }),
 
+    setProjectName: (projectName) => set({ projectName }),
+
+    // Replaces all inputs; missing options fall back to defaults
+    loadProjectData: (name, data) => set({
+      stockPlates: data.stockPlates,
+      cutPieces: data.cutPieces,
+      kerf: data.kerf ?? DEFAULT_KERF_MM,
+      grainEnabled: data.grainEnabled ?? false,
+      priority: data.priority ?? 'least-waste',
+      trimLeft: data.trimLeft ?? 0,
+      trimTop: data.trimTop ?? 0,
+      projectName: name,
+    }),
+
     // Feature flag default: true (phase 1 uses InlineTable). Can be toggled to test migration path.
     useInlineTableForPieces: true,
     setUseInlineTableForPieces: (enabled: boolean) => set({ useInlineTableForPieces: enabled }),
@@ -101,17 +135,4 @@ export const useStore = create<AppState>()(
 )
 
 // Auto-persist on every state change (shallow equality prevents unnecessary saves)
-useStore.subscribe(
-  state => ({
-    stockPlates: state.stockPlates,
-    cutPieces: state.cutPieces,
-    kerf: state.kerf,
-    grainEnabled: state.grainEnabled,
-    priority: state.priority,
-    trimLeft: state.trimLeft,
-    trimTop: state.trimTop,
-  }),
-  ({ stockPlates, cutPieces, kerf, grainEnabled, priority, trimLeft, trimTop }) =>
-    saveState({ stockPlates, cutPieces, kerf, grainEnabled, priority, trimLeft, trimTop }),
-  { equalityFn: shallow }
-)
+useStore.subscribe(selectPersisted, saveState, { equalityFn: shallow })
