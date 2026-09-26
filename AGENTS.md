@@ -8,7 +8,7 @@ TypeScript, React 19, Vite, Tailwind CSS, Zustand, Vitest.
 
 - `npm ci` — install dependencies
 - `npm run build` — production build
-- `npm test -- --run` — run tests once
+- `npm test` — run tests once
 - `npm run dev` — dev server on port 5173
 
 ## Conventions
