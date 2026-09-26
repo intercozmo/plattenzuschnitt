@@ -44,3 +44,12 @@ export function describeBar(b: { label: string; length: number; width: number; t
   const section = sectionLabel(b)
   return `${b.label ? `${b.label} ` : ''}L ${b.length} mm${section ? ` · ${section}` : ''}`
 }
+
+// Total value of stock entries (quantity × price per piece)
+export function stockValue(items: Array<{ quantity: number; price?: number }>): number {
+  return items.reduce((sum, i) => sum + i.quantity * (i.price ?? 0), 0)
+}
+
+export function formatEuro(value: number): string {
+  return value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+}

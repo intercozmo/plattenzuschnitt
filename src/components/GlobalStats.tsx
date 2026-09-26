@@ -1,5 +1,6 @@
 // src/components/GlobalStats.tsx
 import type { CutPlan, CutNode } from '../types'
+import { stockValue, formatEuro } from '../utils/items'
 import { useStore } from '../store'
 
 interface Props {
@@ -53,6 +54,8 @@ export default function GlobalStats({ plan }: Props) {
 
   // Material cost = price of every plate used (only shown if any price is set)
   const materialCost = plan.plates.reduce((sum, p) => sum + (p.stock.price ?? 0), 0)
+  // Stock value = plates used + plates left over
+  const stockTotal = materialCost + stockValue(plan.unusedStockPlates.map(u => ({ quantity: u.quantity, price: u.stock.price })))
 
   // Map priority to German label
   const priorityLabel = {
@@ -95,9 +98,14 @@ export default function GlobalStats({ plan }: Props) {
         {materialCost > 0 && (
           <>
             <dt className="text-slate-500">Materialkosten</dt>
-            <dd className="text-slate-800 font-medium text-right">
-              {materialCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-            </dd>
+            <dd className="text-slate-800 font-medium text-right">{formatEuro(materialCost)}</dd>
+          </>
+        )}
+
+        {stockTotal > 0 && (
+          <>
+            <dt className="text-slate-500">Bestandswert</dt>
+            <dd className="text-slate-800 font-medium text-right">{formatEuro(stockTotal)}</dd>
           </>
         )}
 
