@@ -18,7 +18,7 @@ Tests run in the `node` environment (no DOM), so only pure logic (`src/algorithm
 
 ## Deployment
 
-`.github/workflows/deploy.yml` runs tests + build on push to `main` and deploys `dist/` to GitHub Pages. `vite.config.ts` sets `base: '/plattenzuschnitt/'` — required for Pages; don't remove it. `vite-plugin-pwa` generates the service worker/manifest.
+`.github/workflows/ci.yml` runs `npm ci`, tests and build on every pull request. `.github/workflows/deploy.yml` runs the same on push to `main` and deploys `dist/` to GitHub Pages. `npm ci` fails if `package.json` and `package-lock.json` are out of sync, so regenerate the lockfile with npm (never hand-edit or hand-merge it). `vite.config.ts` sets `base: '/plattenzuschnitt/'` — required for Pages; don't remove it. `vite-plugin-pwa` generates the service worker/manifest.
 
 ## Architecture
 
