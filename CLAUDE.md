@@ -22,9 +22,9 @@ Tests run in the `node` environment (no DOM), so only pure logic (`src/algorithm
 
 ## Architecture
 
-**Data flow:** `store.ts` (Zustand) holds inputs → user clicks "Berechnen" in `Header` → `App.handleCompute` reads `useStore.getState()` and calls `computeCutPlan(...)` → the resulting `CutPlan` is kept in `App`'s local `useState` (not in the store, not persisted) and passed as props to `DiagramPanel` and `ResultsPanel`. Plans are only recomputed on explicit click, never reactively.
+**Data flow:** `store.ts` (Zustand) holds inputs → user clicks "Berechnen" in `Header` → `App.handleCompute` builds a `ComputeRequest` from `useStore.getState()` and sends it to a Web Worker (`useComputeWorker` → `workers/compute.worker.ts` → `runCompute` in `algorithm/computeRequest.ts`, which calls `computeCutPlan` / `computeLinearPlan`) → the resulting plan is kept in `App`'s local `useState` (not in the store, not persisted) and passed as props to the diagram and results panels. Plans are only recomputed on explicit click, never reactively. Only one computation runs at a time; "Abbrechen" (or a new computation / project change) terminates the worker, which is the only way to interrupt the algorithm. Everything crossing the worker boundary must be structured-cloneable (plain data, no functions).
 
-- When `grainEnabled` is false, `App` rewrites every piece to `grain: 'any'` before computing — the algorithm itself only looks at `piece.grain`.
+- When `grainEnabled` is false, `runCompute` rewrites every piece to `grain: 'any'` before computing — the algorithm itself only looks at `piece.grain`.
 - `MAX_TOTAL_PIECES` (500, in `constants.ts`) caps the expanded piece count; compute is disabled above it.
 
 **Persistence:** `store.ts` subscribes (with `shallow` equality) and writes `selectPersisted(state)` to `localStorage` key `plattenzuschnitt_v1` via `persistence.ts`. `parsePersistedState()` validates and back-fills missing fields (e.g. `thickness` defaults to 18, invalid `grain` → `'any'`, `price` → 0). When adding a persisted field, update: `AppState` + initial value, `selectPersisted`, `loadProjectData`, and `PersistedState` + `parsePersistedState()`.
