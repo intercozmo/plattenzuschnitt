@@ -164,19 +164,24 @@ export default function InlineTable({
     URL.revokeObjectURL(url)
   }
 
+  function startImport(text: string) {
+    if (!csvImport) return
+    const result = csvImport.parseFile(text)
+    if (result.rows.length === 0) {
+      setPendingImport(null)
+      setImportErrors(result.errors.length > 0 ? result.errors : ['Keine Einträge gefunden.'])
+      return
+    }
+    setImportErrors([])
+    setPendingImport(result)
+  }
+
   function handleCsvFile(file: File) {
     const reader = new FileReader()
     reader.onload = e => {
       const text = e.target?.result as string
-      if (!csvImport || !text) return
-      const result = csvImport.parseFile(text)
-      if (result.rows.length === 0) {
-        setPendingImport(null)
-        setImportErrors(result.errors.length > 0 ? result.errors : ['Keine Einträge gefunden.'])
-        return
-      }
-      setImportErrors([])
-      setPendingImport(result)
+      if (!text) return
+      startImport(text)
     }
     reader.onerror = () => setImportErrors(['Fehler beim Lesen der Datei.'])
     reader.readAsText(file, 'UTF-8')
@@ -209,6 +214,17 @@ export default function InlineTable({
       return
     }
     handleCsvFile(file)
+  }
+
+  // Multi-cell paste (rows copied from Excel / Sheets) goes through the import dialog;
+  // single values paste normally into the focused input
+  function handlePaste(e: React.ClipboardEvent) {
+    if (!csvImport) return
+    const text = e.clipboardData.getData('text/plain').trim()
+    if (!text.includes('\t') && !text.includes('\n')) return
+    e.preventDefault()
+    cancelEdit()
+    startImport(text)
   }
 
   function handleKeyDown(e: React.KeyboardEvent, id: string, colIndex: number) {
@@ -247,10 +263,12 @@ export default function InlineTable({
 
   return (
     <div
-      className={`w-full${isDragOver ? ' ring-2 ring-blue-400 rounded' : ''}`}
+      className={`w-full outline-none${isDragOver ? ' ring-2 ring-blue-400 rounded' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onPaste={handlePaste}
+      tabIndex={-1}
     >
       {rows.length === 0 ? (
         <p className="text-slate-400 text-sm py-2 text-center">Keine Einträge vorhanden.</p>
@@ -395,6 +413,7 @@ export default function InlineTable({
         <>
           <label
             htmlFor={fileInputId}
+            title="Tabellen aus Excel können auch mit Strg+V eingefügt werden"
             className="mt-2 ml-3 text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2 cursor-pointer"
           >
             CSV importieren

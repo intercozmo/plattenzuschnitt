@@ -51,6 +51,9 @@ export default function GlobalStats({ plan }: Props) {
   const totalAvailablePlates =
     plan.plates.length + plan.unusedStockPlates.reduce((s, u) => s + u.quantity, 0)
 
+  // Material cost = price of every plate used (only shown if any price is set)
+  const materialCost = plan.plates.reduce((sum, p) => sum + (p.stock.price ?? 0), 0)
+
   // Map priority to German label
   const priorityLabel = {
     'least-waste': 'Wenig Verschnitt',
@@ -88,6 +91,15 @@ export default function GlobalStats({ plan }: Props) {
         <dd className="text-slate-800 font-medium text-right bg-amber-50">
           {plan.totalWastePct.toFixed(1)} %
         </dd>
+
+        {materialCost > 0 && (
+          <>
+            <dt className="text-slate-500">Materialkosten</dt>
+            <dd className="text-slate-800 font-medium text-right">
+              {materialCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </dd>
+          </>
+        )}
 
         <dt className="text-slate-500">Optimierung</dt>
         <dd className="text-slate-800 font-medium text-right">

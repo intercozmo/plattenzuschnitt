@@ -10,6 +10,7 @@ export interface StockPlate {
   thickness: number; // mm - material thickness
   grain: Grain;
   quantity: number;
+  price?: number;  // € per plate, used for material cost
 }
 
 export interface CutPiece {
@@ -76,4 +77,48 @@ export interface AppOptions {
   priority: OptimizationPriority;
   trimLeft: number;
   trimTop: number;
+}
+
+// ---------------------------------------------------------------------------
+// 1D linear cutting (bars, battens, profiles)
+// ---------------------------------------------------------------------------
+
+export type AppMode = '2d' | '1d';
+
+export interface StockBar {
+  id: string;
+  label: string;
+  length: number;   // mm
+  profile: string;  // cross-section / material, parts only go on bars with the same profile
+  quantity: number;
+  price?: number;   // € per bar
+}
+
+export interface LinearPart {
+  id: string;
+  name: string;
+  length: number;   // mm
+  profile: string;
+  quantity: number;
+}
+
+export interface LinearPlacement {
+  part: LinearPart;
+  offset: number;   // mm from bar start
+}
+
+export interface PlacedBar {
+  stock: StockBar;
+  barIndex: number;          // 0-based physical instance index
+  placements: LinearPlacement[];
+  wasteLength: number;       // stock.length − Σ part lengths (includes kerf and trim)
+  wastePct: number;
+  cuts: number;              // saw cuts on this bar (trim + after each part not ending at bar end)
+}
+
+export interface LinearPlan {
+  bars: PlacedBar[];
+  totalWastePct: number;     // Σ wasteLength / Σ bar length × 100
+  unusedStock: Array<{ stock: StockBar; quantity: number }>;
+  unplacedParts: LinearPart[];
 }

@@ -9,3 +9,27 @@ input[type=number]::-webkit-outer-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Print / PDF workshop sheet (see PrintSheet.tsx) */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  .print-sheet svg {
+    width: 100%;
+    height: auto;
+    transform: none !important;
+  }
+  .print-sheet section:first-of-type {
+    break-before: auto;
+  }
+}
+
+/* Keep background colors (1D bars, hatching) when printing */
+@media print {
+  .print-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
