@@ -313,3 +313,17 @@ describe('material matching', () => {
     expect(steps.some(s => s.pieceName === '7 Boden')).toBe(true)
   })
 })
+
+describe('performance', () => {
+  // ~500 pieces took up to a minute before the search was memoized (now well under 2 s)
+  it('plans close to MAX_TOTAL_PIECES pieces in a few seconds', () => {
+    const sizes = [[720, 560], [800, 500], [400, 300], [600, 350], [1200, 450], [330, 250], [900, 600], [150, 700]]
+    const pieces: CutPiece[] = sizes.map(([h, w], i) => ({ id: 'p' + i, name: 'P' + i, width: w, height: h, thickness: 18, quantity: 62, grain: 'any' }))
+    const stock: StockPlate[] = [{ id: 's', label: 'S', width: 2070, height: 2800, thickness: 18, grain: 'any', quantity: 200 }]
+    const start = performance.now()
+    const plan = computeCutPlan(stock, pieces, 3, 'balanced')
+    expect(performance.now() - start).toBeLessThan(15000)
+    expect(plan.unplacedPieces).toEqual([])
+    expect(plan.plates).toHaveLength(28)
+  }, 30000)
+})
