@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Plattenzuschnitt is a client-only PWA that computes guillotine cut plans for wood panels (stock sheets → cut pieces). No backend; state lives in `localStorage`. All UI text is German.
 
-See also `AGENTS.md` (conventions: functional components, camelCase/PascalCase, imperative commit messages). Note it says React 18, but the project is on React 19, Tailwind 4, Vite 8, TypeScript 6.
+See also `AGENTS.md` (conventions: functional components, camelCase/PascalCase, imperative commit messages). Versions: React 19, Tailwind 4, Vite 8, TypeScript 6.
 
 ## Commands
 

@@ -2,7 +2,7 @@
 
 ## Stack
 
-TypeScript, React 18, Vite, Tailwind CSS, Zustand, Vitest.
+TypeScript, React 19, Vite, Tailwind CSS, Zustand, Vitest.
 
 ## Commands
 
