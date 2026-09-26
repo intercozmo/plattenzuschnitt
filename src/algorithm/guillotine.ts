@@ -16,15 +16,34 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function canRotate(piece: CutPiece): boolean {
-  return piece.grain === 'any'
+// Grain: 'horizontal' = längs (along the length L = height), 'vertical' = quer.
+// A piece's grain must run parallel to the plate's grain: same direction →
+// placed as entered, different direction → rotated by 90°. If either the
+// piece or the plate has no grain, both orientations are allowed.
+type Orientation = 'both' | 'normal' | 'rotated'
+
+function orientationFor(piece: CutPiece, stock: StockPlate): Orientation {
+  if (piece.grain === 'any' || stock.grain === 'any') return 'both'
+  return piece.grain === stock.grain ? 'normal' : 'rotated'
 }
 
-function fitsOnStock(piece: CutPiece, stock: StockPlate): boolean {
+// Usable area of a plate after the trim strips (display-space trims mapped to
+// algorithm space; a portrait plate is drawn with its length horizontal)
+function usableArea(stock: StockPlate, kerf: number, trimLeft: number, trimTop: number) {
+  const transposed = stock.height > stock.width
+  const trimX = transposed ? trimTop : trimLeft
+  const trimY = transposed ? trimLeft : trimTop
+  const offsetX = trimX > 0 ? trimX + kerf : 0
+  const offsetY = trimY > 0 ? trimY + kerf : 0
+  return { offsetX, offsetY, width: Math.max(1, stock.width - offsetX), height: Math.max(1, stock.height - offsetY) }
+}
+
+function fitsOnStock(piece: CutPiece, stock: StockPlate, usable: { width: number; height: number }): boolean {
   if (piece.thickness !== stock.thickness) return false
   if (!materialMatches(piece.material, stock.material)) return false
-  if (piece.width <= stock.width && piece.height <= stock.height) return true
-  if (canRotate(piece) && piece.height <= stock.width && piece.width <= stock.height) return true
+  const orientation = orientationFor(piece, stock)
+  if (orientation !== 'rotated' && piece.width <= usable.width && piece.height <= usable.height) return true
+  if (orientation !== 'normal' && piece.height <= usable.width && piece.width <= usable.height) return true
   return false
 }
 
@@ -75,7 +94,8 @@ const EMPTY: SearchResult = { placed: [], area: 0, tree: null, reach: 0 }
 
 interface SearchContext {
   pieces: CutPiece[]        // sorted by the priority's order
-  typeCode: string[]        // one char per piece: same char = same width/height/rotatability
+  orientation: Orientation[] // allowed orientations per piece on this plate
+  typeCode: string[]        // one char per piece: same char = same width/height/orientation
   kerf: number
   priority: OptimizationPriority
   memo: Map<string, SearchResult>
@@ -117,11 +137,13 @@ function searchUncached(ctx: SearchContext, panelWidth: number, panelHeight: num
   const orientations: Array<{ pw: number; ph: number; rotated: boolean }> = []
   for (let pos = 0; pos < list.length; pos++) {
     const piece = pieces[list[pos]]
-    if (piece.width <= panelWidth && piece.height <= panelHeight) {
+    const allowed = ctx.orientation[list[pos]]
+    if (allowed !== 'rotated' && piece.width <= panelWidth && piece.height <= panelHeight) {
       orientations.push({ pw: piece.width, ph: piece.height, rotated: false })
     }
-    // Avoid duplicate orientation when width === height
-    if (canRotate(piece) && piece.height <= panelWidth && piece.width <= panelHeight && piece.width !== piece.height) {
+    // Avoid duplicate orientation when width === height (unless rotation is required by grain)
+    if (allowed !== 'normal' && piece.height <= panelWidth && piece.width <= panelHeight
+        && (allowed === 'rotated' || piece.width !== piece.height)) {
       orientations.push({ pw: piece.height, ph: piece.width, rotated: true })
     }
     if (orientations.length > 0) {
@@ -222,6 +244,7 @@ function sortForPriority(pieces: CutPiece[], priority: OptimizationPriority): Cu
 }
 
 function placeOnPanel(
+  stock: StockPlate,
   panelWidth: number,
   panelHeight: number,
   offsetX: number,
@@ -231,13 +254,14 @@ function placeOnPanel(
   priority: OptimizationPriority,
 ): { placements: Placement[]; cutNode: CutNode | null } {
   const sorted = sortForPriority(pieces, priority)
+  const orientation = sorted.map(p => orientationFor(p, stock))
   const codes = new Map<string, string>()
-  const typeCode = sorted.map(p => {
-    const type = `${p.width}x${p.height}${canRotate(p) ? 'r' : ''}`
+  const typeCode = sorted.map((p, i) => {
+    const type = `${p.width}x${p.height}${orientation[i]}`
     if (!codes.has(type)) codes.set(type, String.fromCharCode(0x100 + codes.size))
     return codes.get(type)!
   })
-  const ctx: SearchContext = { pieces: sorted, typeCode, kerf, priority, memo: new Map() }
+  const ctx: SearchContext = { pieces: sorted, orientation, typeCode, kerf, priority, memo: new Map() }
   const result = search(ctx, panelWidth, panelHeight, sorted.map((_, i) => i), 0)
   return materialize(ctx, result, offsetX, offsetY)
 }
@@ -293,10 +317,13 @@ export function computeCutPlan(
   const plates: PlacedPlate[] = []
   const plateIndexCounters = new Map<string, number>()
   let unplacedPieces = [...expanded]
+  const skipped: CutPiece[] = []  // no plate (left) for these pieces
+  const usable = new Map(stockPlates.map(s => [s.id, usableArea(s, kerf, trimLeft, trimTop)]))
+  const fits = (piece: CutPiece, stock: StockPlate) => fitsOnStock(piece, stock, usable.get(stock.id)!)
 
   // Keep opening new plates until all pieces are placed or no plate fits
   while (unplacedPieces.length > 0) {
-    const placeable = unplacedPieces.filter(p => stockPlates.some(s => fitsOnStock(p, s)))
+    const placeable = unplacedPieces.filter(p => stockPlates.some(s => fits(p, s)))
     if (placeable.length === 0) break
 
     // Pick smallest available stock that fits the largest remaining piece
@@ -306,7 +333,7 @@ export function computeCutPlan(
     let bestStock: { stock: StockPlate; av: { stock: StockPlate; remaining: number } } | null = null
     for (const av of available.values()) {
       if (av.remaining <= 0) continue
-      if (!fitsOnStock(largestPiece, av.stock)) continue
+      if (!fits(largestPiece, av.stock)) continue
       const area = av.stock.width * av.stock.height
       if (!bestStock || area < bestStock.stock.width * bestStock.stock.height) {
         bestStock = { stock: av.stock, av }
@@ -314,7 +341,8 @@ export function computeCutPlan(
     }
 
     if (!bestStock) {
-      // Largest piece can't fit any stock — skip it
+      // No plate left that fits the largest piece — report it as unplaced
+      skipped.push(largestPiece)
       unplacedPieces = unplacedPieces.filter(p => p !== largestPiece)
       continue
     }
@@ -325,24 +353,17 @@ export function computeCutPlan(
 
     const { stock } = bestStock
 
-    // Determine if plate display is transposed (L=height is shown horizontally)
-    const transposed = stock.height > stock.width
-    // Map display-space trim to algorithm coordinate space
-    const algoTrimX = transposed ? trimTop : trimLeft
-    const algoTrimY = transposed ? trimLeft : trimTop
-    const algoOffsetX = algoTrimX > 0 ? algoTrimX + kerf : 0
-    const algoOffsetY = algoTrimY > 0 ? algoTrimY + kerf : 0
-    const usableW = Math.max(1, stock.width - algoOffsetX)
-    const usableH = Math.max(1, stock.height - algoOffsetY)
+    const area = usable.get(stock.id)!
 
-    // Only pass pieces that actually fit this specific stock plate (thickness + dimensions)
-    const placeableOnThisStock = placeable.filter(p => fitsOnStock(p, stock))
+    // Only pass pieces that actually fit this specific stock plate (thickness, material, grain, size)
+    const placeableOnThisStock = placeable.filter(p => fits(p, stock))
 
     const result = placeOnPanel(
-      usableW,
-      usableH,
-      algoOffsetX,
-      algoOffsetY,
+      stock,
+      area.width,
+      area.height,
+      area.offsetX,
+      area.offsetY,
       placeableOnThisStock,
       kerf,
       priority,
@@ -377,9 +398,10 @@ export function computeCutPlan(
     unplacedPieces = unplacedPieces.filter(p => !placedSet.has(p))
   }
 
-  // Aggregate unplaced counts by piece id
+  // Aggregate unplaced counts by piece id (in input order)
+  const unplacedSet = new Set([...skipped, ...unplacedPieces])
   const unplacedCounts = new Map<string, { piece: CutPiece; count: number }>()
-  for (const p of unplacedPieces) {
+  for (const p of expanded.filter(x => unplacedSet.has(x))) {
     const existing = unplacedCounts.get(p.id)
     if (existing) {
       existing.count++

@@ -1,6 +1,6 @@
 // src/components/CutDiagram.tsx
 import { useId, useRef, useState } from 'react'
-import type { PlacedPlate, CutPiece } from '../types'
+import type { PlacedPlate, CutPiece, Placement } from '../types'
 import type { PieceHighlight } from '../App'
 import { useResizeObserver } from '../hooks/useResizeObserver'
 import { itemLabel } from '../utils/items'
@@ -69,6 +69,16 @@ function toDisplayRect(
 ): { x: number; y: number; w: number; h: number } {
   if (transposed) return { x: ay, y: ax, w: ah, h: aw }
   return { x: ax, y: ay, w: aw, h: ah }
+}
+
+// Grain direction of a placed piece as an arrow relative to its label text
+// ('' without grain). Längs = along the piece length (algorithm y unless rotated);
+// a transposed plate swaps the axes, a rotated label swaps them again.
+function grainArrow(p: Placement, transposed: boolean, textRotated: boolean): string {
+  if (p.piece.grain === 'any') return ''
+  const alongAlgoY = (p.piece.grain === 'horizontal') !== p.rotated
+  const displayVertical = transposed ? !alongAlgoY : alongAlgoY
+  return displayVertical !== textRotated ? ' ↕' : ' ↔'
 }
 
 export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, trimLeft, trimTop, highlight, onHighlight }: Props) {
@@ -227,7 +237,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                       <text x={cx} y={cy - 30}
                         textAnchor="middle" fontSize={50} fontWeight="600" fill="#1e293b"
                         transform={rot}>
-                        {itemLabel(p.piece)}
+                        {itemLabel(p.piece)}{grainArrow(p, transposed, tall)}
                       </text>
                       <text x={cx} y={cy + 30}
                         textAnchor="middle" fontSize={40} fill="#334155"
@@ -260,7 +270,7 @@ export default function CutDiagram({ plate, plateNumber, pieceColorMap, kerf, tr
                     <text x={cx} y={cy}
                       textAnchor="middle" dominantBaseline="middle" fontSize={36} fontWeight="600" fill="#1e293b"
                       transform={rot}>
-                      {itemLabel(p.piece)}
+                      {itemLabel(p.piece)}{grainArrow(p, transposed, tall)}
                     </text>
                   )
                 })()}

@@ -177,26 +177,37 @@ describe('computeCutPlan', () => {
   // New: grain direction / rotation tests
   // -------------------------------------------------------------------------
 
-  it('rotation is only applied when grain is any', () => {
-    // Piece 200×1300: height 1300 > plate height 1220, so only fits rotated (1300 wide, 200 tall).
-    // With grain='any': rotation allowed → placed rotated.
-    // With grain='vertical': rotation blocked → unplaced.
-    const forceRotate: CutPiece = {
-      id: 'r3', name: 'NeedsRot', width: 200, height: 1300, thickness: 18, quantity: 1, grain: 'any'
-    }
-    const forceRotateNoRot: CutPiece = {
-      id: 'r4', name: 'NeedsRotBlocked', width: 200, height: 1300, thickness: 18, quantity: 1, grain: 'vertical'
-    }
+  it('rotation follows the plate grain', () => {
+    // Piece 200×1300 on a 2440×1220 plate: 1300 > 1220, so it only fits rotated.
+    const piece = (grain: CutPiece['grain']): CutPiece =>
+      ({ id: 'r', name: 'NeedsRot', width: 200, height: 1300, thickness: 18, quantity: 1, grain })
+    const onPlate = (plateGrain: StockPlate['grain'], pieceGrain: CutPiece['grain']) =>
+      computeCutPlan([{ ...plate2440, quantity: 1, grain: plateGrain }], [piece(pieceGrain)])
 
-    // 2440×1220 plate: 1300 > 1220, so 200×1300 only fits rotated (1300 width, 200 height)
-    // With grain='any': should place rotated
-    const planAny = computeCutPlan([{ ...plate2440, quantity: 1 }], [forceRotate])
-    expect(planAny.plates[0]?.placements[0]?.rotated).toBe(true)
+    // No grain on piece or plate: rotation allowed
+    expect(onPlate('any', 'any').plates[0]?.placements[0]?.rotated).toBe(true)
+    expect(onPlate('any', 'horizontal').plates[0]?.placements[0]?.rotated).toBe(true)
+    expect(onPlate('vertical', 'any').plates[0]?.placements[0]?.rotated).toBe(true)
+    // Plate längs, piece quer → must be rotated → fits
+    expect(onPlate('horizontal', 'vertical').plates[0]?.placements[0]?.rotated).toBe(true)
+    // Same grain direction → must not be rotated → does not fit
+    const same = onPlate('horizontal', 'horizontal')
+    expect(same.plates).toHaveLength(0)
+    expect(same.unplacedPieces).toHaveLength(1)
+  })
 
-    // With grain='vertical': rotation not allowed → unplaced
-    const planVert = computeCutPlan([{ ...plate2440, quantity: 1 }], [forceRotateNoRot])
-    expect(planVert.plates).toHaveLength(0)
-    expect(planVert.unplacedPieces).toHaveLength(1)
+  it('aligns every grained piece with the plate grain', () => {
+    // Pieces that fit either way: orientation must follow the grain rule exactly
+    const pieces: CutPiece[] = [
+      { id: 'l', name: 'Längs', width: 300, height: 600, thickness: 18, quantity: 3, grain: 'horizontal' },
+      { id: 'q', name: 'Quer', width: 300, height: 600, thickness: 18, quantity: 3, grain: 'vertical' },
+    ]
+    for (const plateGrain of ['horizontal', 'vertical'] as const) {
+      const plan = computeCutPlan([{ ...plate2440, grain: plateGrain }], pieces)
+      const placements = plan.plates.flatMap(p => p.placements)
+      expect(placements).toHaveLength(6)
+      for (const p of placements) expect(p.rotated).toBe(p.piece.grain !== plateGrain)
+    }
   })
 
   it('thickness mismatch: piece is not placed on wrong-thickness plate', () => {

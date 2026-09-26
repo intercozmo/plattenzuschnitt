@@ -74,7 +74,8 @@ export default function App() {
       if (!result) return  // cancelled
       if (result.mode === '1d') setLinearPlan(result.plan)
       else setPlan(result.plan)
-      if (!isDesktop) setActiveTab('diagramm')
+      // On mobile show the results first when something could not be placed
+      if (!isDesktop) setActiveTab(result.plan.shortage ? 'ergebnis' : 'diagramm')
     } catch (err) {
       alert(`Berechnung fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`)
     }

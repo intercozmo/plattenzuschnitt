@@ -56,12 +56,26 @@ export interface CutStep {
   pieceY?: number;       // algorithm-space y of placed piece
 }
 
+// What is missing when not all pieces/parts could be placed (see algorithm/shortage.ts)
+export interface StockNeed<S> {
+  stock: S;
+  available: number;  // quantity in stock
+  needed: number;     // quantity needed to place everything
+  missing: number;    // needed − available
+}
+
+export interface Shortage<S, P> {
+  missing: StockNeed<S>[];  // stock types to add
+  unfittable: P[];          // items that fit no stock type at all (size, thickness, material, grain)
+}
+
 export interface CutPlan {
   plates: PlacedPlate[];
   totalWastePct: number; // weighted: Σ(wasteArea) / Σ(plate area) × 100
   unusedStockPlates: Array<{ stock: StockPlate; quantity: number }>;
   unplacedPieces: CutPiece[]; // pieces that didn't fit any plate
   cutTrees?: CutNode[]; // one cut tree root per placed plate
+  shortage?: Shortage<StockPlate, CutPiece>; // set when pieces could not be placed
 }
 
 export type OptimizationPriority = 'least-waste' | 'least-cuts' | 'balanced';
@@ -133,4 +147,5 @@ export interface LinearPlan {
   totalWastePct: number;     // Σ wasteLength / Σ bar length × 100
   unusedStock: Array<{ stock: StockBar; quantity: number }>;
   unplacedParts: LinearPart[];
+  shortage?: Shortage<StockBar, LinearPart>; // set when parts could not be placed
 }
