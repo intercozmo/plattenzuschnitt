@@ -11,6 +11,7 @@ const COLUMNS: Column[] = [
   { key: 'thickness', label: 'D',    type: 'number', width: '40px' },
   { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px', csvLabel: 'Maserung' },
   { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px', sortable: true, csvLabel: 'Anzahl' },
+  { key: 'price',     label: '€',    type: 'number', width: '52px', csvLabel: 'Preis' },
 ]
 
 export default function StockTable() {
@@ -29,10 +30,11 @@ export default function StockTable() {
     grain: p.grain,
     quantity: p.quantity,
     label: p.label,
+    price: p.price ?? 0,
   }))
 
   function handleAdd() {
-    addStockPlate('', 800, 600, 18, 'any', 1)
+    addStockPlate('', 800, 600, 18, 'any', 1, 0)
   }
 
   function handleSave(id: string, values: Record<string, unknown>) {
@@ -46,6 +48,7 @@ export default function StockTable() {
       grain: (values['grain'] as string || 'any') as StockPlate['grain'],
       quantity: Number(values['quantity']),
       label: String(values['label'] ?? ''),
+      price: Number(values['price']) || 0,
     })
   }
 
@@ -83,6 +86,7 @@ export default function StockTable() {
         thickness: Number(r['thickness']),
         grain: (r['grain'] as StockPlate['grain']) ?? 'any',
         quantity: Number(r['quantity']),
+        price: Number(r['price']) || 0,
       })))
     },
     onAppend: (importedRows) => {
@@ -93,6 +97,7 @@ export default function StockTable() {
         thickness: Number(r['thickness']),
         grain: (r['grain'] as StockPlate['grain']) ?? 'any',
         quantity: Number(r['quantity']),
+        price: Number(r['price']) || 0,
       })))
     },
   }

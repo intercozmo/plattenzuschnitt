@@ -8,9 +8,10 @@ interface Props {
   plates: PlacedPlate[]
   highlight?: PieceHighlight | null
   onHighlight?: (h: PieceHighlight | null) => void
+  startPlateNumber?: number  // number of plates[0], when rendering a subset
 }
 
-export default function CutList({ plates, highlight, onHighlight }: Props) {
+export default function CutList({ plates, highlight, onHighlight, startPlateNumber = 1 }: Props) {
   const highlightRef = useRef<HTMLTableRowElement>(null)
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function CutList({ plates, highlight, onHighlight }: Props) {
 
   for (let i = 0; i < plates.length; i++) {
     const steps = generateCutSequence(plates[i])
-    plateSteps.push({ plate: plates[i], plateNumber: i + 1, steps })
+    plateSteps.push({ plate: plates[i], plateNumber: startPlateNumber + i, steps })
   }
 
   const totalSteps = plateSteps.reduce((s, ps) => s + ps.steps.length, 0)

@@ -15,6 +15,19 @@ interface Props {
   onHighlight?: (h: PieceHighlight | null) => void
 }
 
+// Color map from all placements across all plates
+export function buildPieceColorMap(plan: CutPlan): Map<string, string> {
+  const map = new Map<string, string>()
+  plan.plates.forEach(plate => {
+    plate.placements.forEach(p => {
+      if (!map.has(p.piece.id)) {
+        map.set(p.piece.id, COLOR_PALETTE[map.size % COLOR_PALETTE.length])
+      }
+    })
+  })
+  return map
+}
+
 function plateKey(plate: PlacedPlate): string {
   return `${plate.stock.id}-${plate.plateIndex}`
 }
@@ -49,18 +62,7 @@ async function exportPlateAsJpg(svgElement: SVGElement, filename: string) {
 }
 
 export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, highlight, onHighlight }: Props) {
-  // Build color map from all placements across all plates
-  const pieceColorMap = useMemo(() => {
-    const map = new Map<string, string>()
-    plan.plates.forEach(plate => {
-      plate.placements.forEach(p => {
-        if (!map.has(p.piece.id)) {
-          map.set(p.piece.id, COLOR_PALETTE[map.size % COLOR_PALETTE.length])
-        }
-      })
-    })
-    return map
-  }, [plan])
+  const pieceColorMap = useMemo(() => buildPieceColorMap(plan), [plan])
 
   // Selected plates state (all selected by default)
   const allKeys = plan.plates.map(plateKey)
@@ -114,10 +116,6 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, hi
     }
   }
 
-  function handlePdfExport() {
-    alert('PDF-Export noch nicht verfügbar. Nutzen Sie "Drucken" als Alternative.')
-  }
-
   return (
     <div className="flex flex-col min-h-0">
       {/* Export controls */}
@@ -135,19 +133,13 @@ export default function DiagramPanel({ plan, kerf, trimLeft, trimTop, onBack, hi
           onClick={() => window.print()}
           className="text-sm px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
         >
-          Drucken
+          Drucken / PDF
         </button>
         <button
           onClick={handleJpgExport}
           className="text-sm px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
         >
           JPG exportieren
-        </button>
-        <button
-          onClick={handlePdfExport}
-          className="text-sm px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
-        >
-          PDF exportieren
         </button>
       </div>
 
