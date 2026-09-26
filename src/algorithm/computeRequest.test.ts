@@ -26,8 +26,8 @@ describe('runCompute', () => {
   it('runs the 1D algorithm in 1D mode', () => {
     const r = runCompute({
       mode: '1d',
-      stockBars: [{ id: 'b', label: 'Latte', length: 3000, profile: '', quantity: 1 }],
-      linearParts: [{ id: 'l', name: 'Teil', length: 1000, profile: '', quantity: 2 }],
+      stockBars: [{ id: 'b', label: 'Latte', material: '', width: 0, thickness: 0, length: 3000, quantity: 1 }],
+      linearParts: [{ id: 'l', name: 'Teil', material: '', width: 0, thickness: 0, length: 1000, quantity: 2 }],
       kerf: 3,
       linearTrim: 0,
     })

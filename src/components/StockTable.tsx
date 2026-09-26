@@ -1,18 +1,10 @@
 // src/components/StockTable.tsx
-import InlineTable, { type Column, type Row, type CsvExportConfig, type CsvImportConfig } from './InlineTable'
+import InlineTable, { type Row } from './InlineTable'
 import { useStore } from '../store'
 import type { StockPlate } from '../types'
-import { parseStockCsv } from '../utils/csvImport'
+import { itemColumns, grainExport, csvImportConfig, text, positive, nonNegative } from './itemColumns'
 
-const COLUMNS: Column[] = [
-  { key: 'label',     label: 'Bezeichnung', type: 'text', sortable: true },
-  { key: 'height',    label: 'L',    type: 'number', width: '52px', sortable: true },
-  { key: 'width',     label: 'B',    type: 'number', width: '52px', sortable: true },
-  { key: 'thickness', label: 'D',    type: 'number', width: '40px' },
-  { key: 'grain',     label: 'M',    type: 'grain' as const, width: '40px', csvLabel: 'Maserung' },
-  { key: 'quantity',  label: 'Anz',  type: 'number', width: '40px', sortable: true, csvLabel: 'Anzahl' },
-  { key: 'price',     label: '€',    type: 'number', width: '52px', csvLabel: 'Preis' },
-]
+const COLUMNS = itemColumns({ grain: true, price: true })
 
 export default function StockTable() {
   const stockPlates = useStore(s => s.stockPlates)
@@ -24,36 +16,29 @@ export default function StockTable() {
 
   const rows: Row[] = stockPlates.map(p => ({
     id: p.id,
-    width: p.width,
-    height: p.height,
-    thickness: p.thickness,
-    grain: p.grain,
+    pos: p.pos ?? '',
+    name: p.label,
+    material: p.material ?? '',
     quantity: p.quantity,
-    label: p.label,
+    width: p.width,
+    thickness: p.thickness,
+    length: p.height,
+    grain: p.grain,
     price: p.price ?? 0,
   }))
 
-  function handleAdd() {
-    addStockPlate('', 800, 600, 18, 'any', 1, 0)
-  }
-
   function handleSave(id: string, values: Record<string, unknown>) {
-    const width = Math.max(1, Number(values['width']) || 0)
-    const height = Math.max(1, Number(values['height']) || 0)
-    const thickness = Math.max(1, Number(values['thickness']) || 0)
     updateStockPlate(id, {
-      width,
-      height,
-      thickness,
-      grain: (values['grain'] as string || 'any') as StockPlate['grain'],
-      quantity: Number(values['quantity']),
-      label: String(values['label'] ?? ''),
-      price: Number(values['price']) || 0,
+      pos: text(values['pos']),
+      label: text(values['name']),
+      material: text(values['material']),
+      quantity: positive(values['quantity'], 1),
+      width: positive(values['width'], 0),
+      thickness: positive(values['thickness'], 0),
+      height: positive(values['length'], 0),
+      grain: (values['grain'] as StockPlate['grain']) || 'any',
+      price: nonNegative(values['price']),
     })
-  }
-
-  function handleDelete(id: string) {
-    removeStockPlate(id)
   }
 
   function handleGrainToggle(id: string, current: string) {
@@ -61,57 +46,26 @@ export default function StockTable() {
     updateStockPlate(id, { grain: next as StockPlate['grain'] })
   }
 
-  const csvExport: CsvExportConfig = {
-    filename: 'plattenbestand.csv',
-    grainExport: (g: string) => {
-      if (g === 'horizontal') return 'Längs'
-      if (g === 'vertical') return 'Quer'
-      return ''
-    },
-  }
-
-  const csvImport: CsvImportConfig = {
-    parseFile: (text: string) => {
-      const result = parseStockCsv(text)
-      return {
-        rows: result.plates.map(p => ({ ...p })),
-        errors: result.errors,
-      }
-    },
-    onReplace: (importedRows) => {
-      replaceStockPlates(importedRows.map(r => ({
-        label: String(r['label'] ?? ''),
-        width: Number(r['width']),
-        height: Number(r['height']),
-        thickness: Number(r['thickness']),
-        grain: (r['grain'] as StockPlate['grain']) ?? 'any',
-        quantity: Number(r['quantity']),
-        price: Number(r['price']) || 0,
-      })))
-    },
-    onAppend: (importedRows) => {
-      appendStockPlates(importedRows.map(r => ({
-        label: String(r['label'] ?? ''),
-        width: Number(r['width']),
-        height: Number(r['height']),
-        thickness: Number(r['thickness']),
-        grain: (r['grain'] as StockPlate['grain']) ?? 'any',
-        quantity: Number(r['quantity']),
-        price: Number(r['price']) || 0,
-      })))
-    },
-  }
+  const csvImport = csvImportConfig<Omit<StockPlate, 'id'>>(
+    r => ({
+      pos: r.pos, label: r.name, material: r.material, quantity: r.quantity,
+      width: r.width, thickness: r.thickness || 18, height: r.length, grain: r.grain, price: r.price,
+    }),
+    replaceStockPlates,
+    appendStockPlates,
+    { requireWidth: true },
+  )
 
   return (
     <InlineTable
       columns={COLUMNS}
       rows={rows}
-      onAdd={handleAdd}
+      onAdd={() => addStockPlate({ pos: '', label: '', material: '', quantity: 1, width: 800, thickness: 18, height: 600, grain: 'any', price: 0 })}
       onSave={handleSave}
-      onDelete={handleDelete}
+      onDelete={removeStockPlate}
       addLabel="+ Platte hinzufügen"
       onGrainToggle={handleGrainToggle}
-      csvExport={csvExport}
+      csvExport={{ filename: 'plattenbestand.csv', grainExport }}
       csvImport={csvImport}
     />
   )

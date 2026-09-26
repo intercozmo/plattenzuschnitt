@@ -289,3 +289,27 @@ describe('generateCutSequence', () => {
     }
   })
 })
+
+describe('material matching', () => {
+  const plate = (id: string, material: string): StockPlate =>
+    ({ id, label: id, material, width: 2440, height: 1220, thickness: 18, grain: 'any', quantity: 1 })
+  const piece = (id: string, material: string): CutPiece =>
+    ({ id, name: id, material, width: 500, height: 400, thickness: 18, quantity: 1, grain: 'any' })
+
+  it('places pieces only on plates of the same material', () => {
+    const plan = computeCutPlan([plate('eiche', 'Eiche')], [piece('a', 'eiche'), piece('b', 'Buche')], 3)
+    expect(plan.plates[0].placements.map(p => p.piece.id)).toEqual(['a'])
+    expect(plan.unplacedPieces.map(p => p.id)).toEqual(['b'])
+  })
+
+  it('lets pieces or plates without material match anything', () => {
+    const plan = computeCutPlan([plate('any', '')], [piece('a', 'Buche'), piece('b', '')], 3)
+    expect(plan.unplacedPieces).toEqual([])
+  })
+
+  it('shows the position number in the cut sequence', () => {
+    const plan = computeCutPlan([plate('p', '')], [{ ...piece('a', ''), pos: '7', name: 'Boden' }, piece('b', '')], 3)
+    const steps = generateCutSequence(plan.plates[0])
+    expect(steps.some(s => s.pieceName === '7 Boden')).toBe(true)
+  })
+})

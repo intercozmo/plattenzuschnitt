@@ -17,6 +17,16 @@ describe('parsePersistedState', () => {
     expect(parsePersistedState(null)).toBeNull()
   })
 
+  it('converts the former free-text 1D profile into cross-section fields', () => {
+    const r = parsePersistedState({
+      stockPlates: [], cutPieces: [],
+      stockBars: [{ id: 'b', label: 'KVH', length: 5000, profile: '60×80 Fichte', quantity: 2 }],
+      linearParts: [{ id: 'p', name: 'Riegel', length: 1200, profile: '', quantity: 1 }],
+    })
+    expect(r?.stockBars?.[0]).toEqual({ id: 'b', label: 'KVH', length: 5000, quantity: 2, width: 60, thickness: 80, material: 'Fichte', price: 0 })
+    expect(r?.linearParts?.[0]).toEqual({ id: 'p', name: 'Riegel', length: 1200, quantity: 1, width: 0, thickness: 0, material: '' })
+  })
+
   it('keeps options and project name', () => {
     const r = parsePersistedState({ stockPlates: [], cutPieces: [], kerf: 4, priority: 'balanced', projectName: 'Küche' })
     expect(r).toMatchObject({ kerf: 4, priority: 'balanced', projectName: 'Küche' })

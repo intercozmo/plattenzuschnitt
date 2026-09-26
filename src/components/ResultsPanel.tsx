@@ -1,5 +1,6 @@
 // src/components/ResultsPanel.tsx
 import { useState } from 'react'
+import { itemLabel } from '../utils/items'
 import type { CutPlan } from '../types'
 import type { PieceHighlight } from '../App'
 import GlobalStats from './GlobalStats'
@@ -88,7 +89,7 @@ export default function ResultsPanel({ plan, kerf, highlight, onHighlight }: Pro
           <ul className="space-y-1">
             {plan.unplacedPieces.map((piece) => (
               <li key={piece.id} className="text-sm text-red-600">
-                {piece.name} — {piece.width}×{piece.height} mm
+                {itemLabel(piece)} — {piece.width}×{piece.height}×{piece.thickness} mm{piece.material && ` ${piece.material}`}
                 {piece.quantity > 1 && ` (${piece.quantity}×)`}
               </li>
             ))}

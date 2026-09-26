@@ -1,5 +1,6 @@
 // src/persistence.ts
 import { SCHEMA_VERSION_KEY } from './constants'
+import { parseProfile } from './utils/items'
 import type { StockPlate, CutPiece, Grain, OptimizationPriority, AppMode, StockBar, LinearPart } from './types'
 
 export interface PersistedState {
@@ -25,6 +26,20 @@ export function loadState(): PersistedState | null {
   } catch {
     return null
   }
+}
+
+// Before cross-section fields existed, 1D items had a free-text `profile` ("70×45 Accoya")
+type LegacyProfile = { profile?: string }
+
+function migrateSection<T extends { width: number; thickness: number; material: string }>(item: T & LegacyProfile): T {
+  const { profile, ...rest } = item
+  const fromProfile = typeof profile === 'string' ? parseProfile(profile) : { width: 0, thickness: 0, material: '' }
+  return {
+    ...rest,
+    width: typeof item.width === 'number' ? item.width : fromProfile.width,
+    thickness: typeof item.thickness === 'number' ? item.thickness : fromProfile.thickness,
+    material: typeof item.material === 'string' ? item.material : fromProfile.material,
+  } as T
 }
 
 // Validates and back-fills persisted data (localStorage state and project files)
@@ -73,17 +88,13 @@ export function parsePersistedState(parsed: any): PersistedState | null {
     result.mode = parsed.mode
   }
   if (Array.isArray(parsed.stockBars)) {
-    result.stockBars = parsed.stockBars.map((b: StockBar) => ({
-      ...b,
-      profile: typeof b.profile === 'string' ? b.profile : '',
+    result.stockBars = parsed.stockBars.map((b: StockBar & LegacyProfile) => ({
+      ...migrateSection(b),
       price: typeof b.price === 'number' ? b.price : 0,
     }))
   }
   if (Array.isArray(parsed.linearParts)) {
-    result.linearParts = parsed.linearParts.map((p: LinearPart) => ({
-      ...p,
-      profile: typeof p.profile === 'string' ? p.profile : '',
-    }))
+    result.linearParts = parsed.linearParts.map((p: LinearPart & LegacyProfile) => migrateSection(p))
   }
   if (typeof parsed.linearTrim === 'number') {
     result.linearTrim = parsed.linearTrim

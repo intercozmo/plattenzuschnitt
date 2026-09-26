@@ -4,7 +4,9 @@ export type Grain = 'any' | 'horizontal' | 'vertical';
 
 export interface StockPlate {
   id: string;
+  pos?: string;      // position number from the parts list / CSV
   label: string;
+  material?: string; // pieces only go on plates of the same material (empty = any)
   width: number;   // mm
   height: number;  // mm
   thickness: number; // mm - material thickness
@@ -15,7 +17,9 @@ export interface StockPlate {
 
 export interface CutPiece {
   id: string;
+  pos?: string;
   name: string;
+  material?: string;
   width: number;   // mm
   height: number;  // mm
   thickness: number; // mm - material thickness
@@ -80,25 +84,33 @@ export interface AppOptions {
 }
 
 // ---------------------------------------------------------------------------
-// 1D linear cutting (bars, battens, profiles)
+// 1D linear cutting (bars, battens)
 // ---------------------------------------------------------------------------
 
 export type AppMode = '2d' | '1d';
 
+// Parts only go on bars with the same cross-section (width × thickness) and
+// material; 0 / empty means "not specified" and matches anything.
 export interface StockBar {
   id: string;
+  pos?: string;
   label: string;
-  length: number;   // mm
-  profile: string;  // cross-section / material, parts only go on bars with the same profile
+  material: string;
+  width: number;     // mm, cross-section
+  thickness: number; // mm, cross-section
+  length: number;    // mm
   quantity: number;
   price?: number;   // € per bar
 }
 
 export interface LinearPart {
   id: string;
+  pos?: string;
   name: string;
+  material: string;
+  width: number;
+  thickness: number;
   length: number;   // mm
-  profile: string;
   quantity: number;
 }
 

@@ -1,5 +1,6 @@
 // src/algorithm/guillotine.ts
 import { DEFAULT_KERF_MM } from '../constants'
+import { itemLabel, materialMatches } from '../utils/items'
 import type {
   StockPlate,
   CutPiece,
@@ -21,6 +22,7 @@ function canRotate(piece: CutPiece): boolean {
 
 function fitsOnStock(piece: CutPiece, stock: StockPlate): boolean {
   if (piece.thickness !== stock.thickness) return false
+  if (!materialMatches(piece.material, stock.material)) return false
   if (piece.width <= stock.width && piece.height <= stock.height) return true
   if (canRotate(piece) && piece.height <= stock.width && piece.width <= stock.height) return true
   return false
@@ -408,7 +410,7 @@ function traverseCutTree(node: CutNode, stepCounter: { n: number }, steps: CutSt
     ? `Schnitt ${stepCounter.n}: Horizontal bei Y=${node.position}mm`
     : `Schnitt ${stepCounter.n}: Vertikal bei X=${node.position}mm`
 
-  const pieceName: string | undefined = node.piece?.piece.name ?? undefined
+  const pieceName: string | undefined = node.piece ? itemLabel(node.piece.piece) : undefined
 
   steps.push({
     direction: node.direction,
