@@ -161,3 +161,78 @@ export function parseStockCsv(text: string): CsvStockResult {
     errors: result.errors,
   }
 }
+
+// ---------------------------------------------------------------------------
+// 1D linear cutting (bars and parts share one format)
+// ---------------------------------------------------------------------------
+
+export interface CsvLinearRow {
+  name: string
+  length: number
+  profile: string
+  quantity: number
+  price: number
+}
+
+function mapLinearColumnName(name: string): string | null {
+  const n = name.trim().toLowerCase()
+  if (['name', 'bezeichnung', 'label', 'beschreibung'].includes(n)) return 'name'
+  if (['länge', 'laenge', 'length', 'l'].includes(n)) return 'length'
+  if (['profil', 'profile', 'querschnitt', 'material'].includes(n)) return 'profile'
+  if (['anzahl', 'quantity', 'anz', 'qty', 'menge'].includes(n)) return 'quantity'
+  if (['preis', 'price', 'kosten', '€'].includes(n)) return 'price'
+  return null
+}
+
+// Column order of the 1D tables: Name, L, Profil, Anz (, €)
+const LINEAR_COLUMN_ORDER = ['name', 'length', 'profile', 'quantity', 'price']
+
+export function parseLinearCsv(text: string): { rows: CsvLinearRow[]; errors: string[] } {
+  const rows: CsvLinearRow[] = []
+  const errors: string[] = []
+  const sep = detectSeparator(text)
+  const lines = text.split('\n').map(l => l.trimEnd())
+  if (lines.length === 0 || lines[0].trim() === '') {
+    return { rows, errors: ['Keine Daten gefunden.'] }
+  }
+
+  let colMap: Record<number, string> = {}
+  lines[0].split(sep).forEach((cell, i) => {
+    const mapped = mapLinearColumnName(cell)
+    if (mapped !== null) colMap[i] = mapped
+  })
+  let firstDataLine = 1
+  if (Object.keys(colMap).length === 0) {
+    colMap = Object.fromEntries(LINEAR_COLUMN_ORDER.map((field, i) => [i, field]))
+    firstDataLine = 0
+  }
+
+  for (let lineIdx = firstDataLine; lineIdx < lines.length; lineIdx++) {
+    if (lines[lineIdx].trim() === '') continue
+    const cells = lines[lineIdx].split(sep)
+    const row: Record<string, string> = {}
+    for (const [idxStr, field] of Object.entries(colMap)) {
+      row[field] = (cells[Number(idxStr)] ?? '').trim()
+    }
+    const displayLine = lineIdx + 1
+    const length = Number(row['length'] ?? '')
+    const quantity = (row['quantity'] ?? '') === '' ? 1 : Number(row['quantity'])
+    if (!row['length'] || isNaN(length) || length <= 0) {
+      errors.push(`Zeile ${displayLine}: Ungültige Länge`)
+      continue
+    }
+    if (isNaN(quantity) || quantity < 1) {
+      errors.push(`Zeile ${displayLine}: Ungültige Anzahl`)
+      continue
+    }
+    const price = Number((row['price'] ?? '').replace(',', '.'))
+    rows.push({
+      name: row['name'] || `Teil ${lineIdx - firstDataLine + 1}`,
+      length,
+      profile: row['profile'] ?? '',
+      quantity: Math.round(quantity),
+      price: isNaN(price) || price < 0 ? 0 : price,
+    })
+  }
+  return { rows, errors }
+}

@@ -25,3 +25,11 @@ input[type=number] {
     break-before: auto;
   }
 }
+
+/* Keep background colors (1D bars, hatching) when printing */
+@media print {
+  .print-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

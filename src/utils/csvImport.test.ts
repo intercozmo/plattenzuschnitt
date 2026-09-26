@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseCsv, parseStockCsv } from './csvImport'
+import { parseCsv, parseStockCsv, parseLinearCsv } from './csvImport'
 
 describe('parseCsv', () => {
   it('parses semicolon CSV with German headers', () => {
@@ -64,5 +64,26 @@ describe('price column', () => {
   it('reads price as 7th column of headerless stock rows', () => {
     const r = parseStockCsv('MDF\t2800\t2070\t19\t\t2\t39.5')
     expect(r.plates[0]).toMatchObject({ label: 'MDF', quantity: 2, price: 39.5 })
+  })
+})
+
+describe('parseLinearCsv', () => {
+  it('parses headers, profiles and prices', () => {
+    const r = parseLinearCsv('Bezeichnung;Länge;Profil;Anzahl;Preis\nLatte;6000;40×60;5;12,50')
+    expect(r.errors).toEqual([])
+    expect(r.rows).toEqual([{ name: 'Latte', length: 6000, profile: '40×60', quantity: 5, price: 12.5 }])
+  })
+
+  it('assumes table column order without header', () => {
+    const r = parseLinearCsv('Riegel\t1200\t40×60\t4\nPfosten\t2400\t40×60')
+    expect(r.rows).toEqual([
+      { name: 'Riegel', length: 1200, profile: '40×60', quantity: 4, price: 0 },
+      { name: 'Pfosten', length: 2400, profile: '40×60', quantity: 1, price: 0 },
+    ])
+  })
+
+  it('reports invalid lengths', () => {
+    const r = parseLinearCsv('Name;L\nA;x')
+    expect(r.errors).toEqual(['Zeile 2: Ungültige Länge'])
   })
 })

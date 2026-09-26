@@ -1,6 +1,6 @@
 // src/persistence.ts
 import { SCHEMA_VERSION_KEY } from './constants'
-import type { StockPlate, CutPiece, Grain, OptimizationPriority } from './types'
+import type { StockPlate, CutPiece, Grain, OptimizationPriority, AppMode, StockBar, LinearPart } from './types'
 
 export interface PersistedState {
   stockPlates: StockPlate[];
@@ -11,6 +11,10 @@ export interface PersistedState {
   trimLeft?: number;
   trimTop?: number;
   projectName?: string;
+  mode?: AppMode;
+  stockBars?: StockBar[];
+  linearParts?: LinearPart[];
+  linearTrim?: number;
 }
 
 export function loadState(): PersistedState | null {
@@ -64,6 +68,25 @@ export function parsePersistedState(parsed: any): PersistedState | null {
   }
   if (typeof parsed.projectName === 'string') {
     result.projectName = parsed.projectName
+  }
+  if (parsed.mode === '1d' || parsed.mode === '2d') {
+    result.mode = parsed.mode
+  }
+  if (Array.isArray(parsed.stockBars)) {
+    result.stockBars = parsed.stockBars.map((b: StockBar) => ({
+      ...b,
+      profile: typeof b.profile === 'string' ? b.profile : '',
+      price: typeof b.price === 'number' ? b.price : 0,
+    }))
+  }
+  if (Array.isArray(parsed.linearParts)) {
+    result.linearParts = parsed.linearParts.map((p: LinearPart) => ({
+      ...p,
+      profile: typeof p.profile === 'string' ? p.profile : '',
+    }))
+  }
+  if (typeof parsed.linearTrim === 'number') {
+    result.linearTrim = parsed.linearTrim
   }
   return result
 }

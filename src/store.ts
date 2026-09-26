@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 import { shallow } from 'zustand/shallow'
 import { nanoid } from 'nanoid'
-import type { StockPlate, CutPiece, Grain, OptimizationPriority } from './types'
+import type { StockPlate, CutPiece, Grain, OptimizationPriority, AppMode, StockBar, LinearPart } from './types'
 import { loadState, saveState, type PersistedState } from './persistence'
 import { DEFAULT_KERF_MM } from './constants'
 
@@ -37,6 +37,24 @@ interface AppState {
   setTrimLeft: (v: number) => void;
   setTrimTop: (v: number) => void;
 
+  // 1D linear cutting
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
+  stockBars: StockBar[];
+  linearParts: LinearPart[];
+  linearTrim: number;
+  addStockBar: (bar: Omit<StockBar, 'id'>) => void;
+  updateStockBar: (id: string, updates: Partial<Omit<StockBar, 'id'>>) => void;
+  removeStockBar: (id: string) => void;
+  replaceStockBars: (bars: Array<Omit<StockBar, 'id'>>) => void;
+  appendStockBars: (bars: Array<Omit<StockBar, 'id'>>) => void;
+  addLinearPart: (part: Omit<LinearPart, 'id'>) => void;
+  updateLinearPart: (id: string, updates: Partial<Omit<LinearPart, 'id'>>) => void;
+  removeLinearPart: (id: string) => void;
+  replaceLinearParts: (parts: Array<Omit<LinearPart, 'id'>>) => void;
+  appendLinearParts: (parts: Array<Omit<LinearPart, 'id'>>) => void;
+  setLinearTrim: (v: number) => void;
+
   // Project actions
   projectName: string;
   setProjectName: (name: string) => void;
@@ -60,6 +78,10 @@ export function selectPersisted(state: AppState): PersistedState {
     trimLeft: state.trimLeft,
     trimTop: state.trimTop,
     projectName: state.projectName,
+    mode: state.mode,
+    stockBars: state.stockBars,
+    linearParts: state.linearParts,
+    linearTrim: state.linearTrim,
   }
 }
 
@@ -73,6 +95,10 @@ export const useStore = create<AppState>()(
     trimLeft: persisted?.trimLeft ?? 0,
     trimTop: persisted?.trimTop ?? 0,
     projectName: persisted?.projectName ?? '',
+    mode: persisted?.mode ?? '2d',
+    stockBars: persisted?.stockBars ?? [],
+    linearParts: persisted?.linearParts ?? [],
+    linearTrim: persisted?.linearTrim ?? 0,
 
     addStockPlate: (label, width, height, thickness, grain, quantity, price) =>
       set(s => ({ stockPlates: [...s.stockPlates, { id: nanoid(), label, width, height, thickness, grain, quantity, price }] })),
@@ -114,6 +140,40 @@ export const useStore = create<AppState>()(
 
     setTrimTop: (trimTop) => set({ trimTop }),
 
+    setMode: (mode) => set({ mode }),
+
+    addStockBar: (bar) =>
+      set(s => ({ stockBars: [...s.stockBars, { id: nanoid(), ...bar }] })),
+
+    updateStockBar: (id, updates) =>
+      set(s => ({ stockBars: s.stockBars.map(b => b.id === id ? { ...b, ...updates } : b) })),
+
+    removeStockBar: (id) =>
+      set(s => ({ stockBars: s.stockBars.filter(b => b.id !== id) })),
+
+    replaceStockBars: (bars) =>
+      set(() => ({ stockBars: bars.map(b => ({ id: nanoid(), ...b })) })),
+
+    appendStockBars: (bars) =>
+      set(s => ({ stockBars: [...s.stockBars, ...bars.map(b => ({ id: nanoid(), ...b }))] })),
+
+    addLinearPart: (part) =>
+      set(s => ({ linearParts: [...s.linearParts, { id: nanoid(), ...part }] })),
+
+    updateLinearPart: (id, updates) =>
+      set(s => ({ linearParts: s.linearParts.map(p => p.id === id ? { ...p, ...updates } : p) })),
+
+    removeLinearPart: (id) =>
+      set(s => ({ linearParts: s.linearParts.filter(p => p.id !== id) })),
+
+    replaceLinearParts: (parts) =>
+      set(() => ({ linearParts: parts.map(p => ({ id: nanoid(), ...p })) })),
+
+    appendLinearParts: (parts) =>
+      set(s => ({ linearParts: [...s.linearParts, ...parts.map(p => ({ id: nanoid(), ...p }))] })),
+
+    setLinearTrim: (linearTrim) => set({ linearTrim }),
+
     setProjectName: (projectName) => set({ projectName }),
 
     // Replaces all inputs; missing options fall back to defaults
@@ -126,6 +186,10 @@ export const useStore = create<AppState>()(
       trimLeft: data.trimLeft ?? 0,
       trimTop: data.trimTop ?? 0,
       projectName: name,
+      mode: data.mode ?? '2d',
+      stockBars: data.stockBars ?? [],
+      linearParts: data.linearParts ?? [],
+      linearTrim: data.linearTrim ?? 0,
     }),
 
     // Feature flag default: true (phase 1 uses InlineTable). Can be toggled to test migration path.

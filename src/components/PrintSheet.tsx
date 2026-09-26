@@ -1,12 +1,14 @@
 // src/components/PrintSheet.tsx
 // Workshop sheet that is only visible when printing (or "Save as PDF")
-import type { CutPlan } from '../types'
+import type { CutPlan, LinearPlan } from '../types'
 import { useStore } from '../store'
 import { buildPieceColorMap } from './DiagramPanel'
 import CutDiagram from './CutDiagram'
 import GlobalStats from './GlobalStats'
 import SheetStats from './SheetStats'
 import CutList from './CutList'
+import LinearDiagram from './LinearDiagram'
+import LinearResults from './LinearResults'
 
 interface Props {
   plan: CutPlan
@@ -17,14 +19,10 @@ interface Props {
 
 export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
   const pieceColorMap = buildPieceColorMap(plan)
-  const projectName = useStore(s => s.projectName)
 
   return (
     <div className="print-sheet hidden print:block text-slate-800">
-      <div className="flex items-baseline justify-between border-b border-slate-300 pb-2 mb-4">
-        <h1 className="text-xl font-bold">Schnittplan{projectName ? ` – ${projectName}` : ''}</h1>
-        <span className="text-sm text-slate-500">{new Date().toLocaleDateString('de-DE')}</span>
-      </div>
+      <PrintHeader />
 
       <div className="mb-6">
         <GlobalStats plan={plan} kerf={kerf} />
@@ -65,6 +63,26 @@ export default function PrintSheet({ plan, kerf, trimLeft, trimTop }: Props) {
           <CutList plates={[plate]} startPlateNumber={idx + 1} />
         </section>
       ))}
+    </div>
+  )
+}
+
+function PrintHeader() {
+  const projectName = useStore(s => s.projectName)
+  return (
+    <div className="flex items-baseline justify-between border-b border-slate-300 pb-2 mb-4">
+      <h1 className="text-xl font-bold">Schnittplan{projectName ? ` – ${projectName}` : ''}</h1>
+      <span className="text-sm text-slate-500">{new Date().toLocaleDateString('de-DE')}</span>
+    </div>
+  )
+}
+
+export function LinearPrintSheet({ plan, kerf, trimStart }: { plan: LinearPlan; kerf: number; trimStart: number }) {
+  return (
+    <div className="print-sheet hidden print:block text-slate-800">
+      <PrintHeader />
+      <LinearDiagram plan={plan} kerf={kerf} trimStart={trimStart} />
+      <LinearResults plan={plan} kerf={kerf} />
     </div>
   )
 }

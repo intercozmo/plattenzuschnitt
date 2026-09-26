@@ -58,7 +58,7 @@ export default function ProjectMenu({ onProjectChange }: Props) {
 
   function handleNew() {
     if (!confirm('Neues Projekt anlegen? Nicht gespeicherte Eingaben gehen verloren.')) return
-    load('', { stockPlates: [], cutPieces: [] })
+    load('', { stockPlates: [], cutPieces: [], mode: useStore.getState().mode })
   }
 
   function handleSave() {
